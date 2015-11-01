@@ -5,15 +5,16 @@
 #include <cmath>
 
 int IntRound( double _value ) {
-	if ( _value >= 0 )
-		return _value + 0.5;
-	else
-		return _value - 0.5;
+	// Если число больше нуля - добавляем к нему 0.5, 
+	// иначе - отнимаем 0.5
+	_value += ( _value >= 0 ) ? 0.5 : -0.5;
+
+	return (int)(_value);
 }
 
 POINT && GetCenternedPosition( const SIZE & _object, const RECT & _field )
 {
-	SIZE fieldSize{ 
+	const SIZE fieldSize{ 
 		_field.right - _field.left, 
 		_field.bottom - _field.top 
 	};
@@ -24,37 +25,43 @@ POINT && GetCenternedPosition( const SIZE & _object, const RECT & _field )
 	};
 }
 
-// TODO: Refactoring
-void InitRegularPoligon( POINT * _pPoints, const short _nOfPoints, const RECT & _ellipse, EllipseType _ellipseType ) {
-	POINT center{
+RECT && GetOuterEllipse( const RECT & _innerDim, const short _nOfPolygonPoints ) {
+	const SIZE innerSize{
+		_innerDim.right - _innerDim.left,
+		_innerDim.bottom - _innerDim.top
+	};
+
+	const double corrMultiplier = 0.5 / cos( M_PI / _nOfPolygonPoints ) - 0.5;
+
+	const SIZE correction{
+		IntRound( innerSize.cx * corrMultiplier ),
+		IntRound( innerSize.cy * corrMultiplier ),
+	};
+
+	//left top right bottom
+	return RECT{
+		_innerDim.left   - correction.cx,
+		_innerDim.top    - correction.cy,
+		_innerDim.right  + correction.cx,
+		_innerDim.bottom + correction.cy
+	};
+}
+
+void InitRegularPoligon( POINT * _pPoints, const short _nOfPoints, const RECT & _ellipse ) {
+	const POINT center{
 		( _ellipse.right + _ellipse.left ) / 2,
 		( _ellipse.bottom + _ellipse.top ) / 2
 	};
-	SIZE epsHalfSize;
 
-	switch ( _ellipseType ) {
-	case INNER:
-		epsHalfSize = {
-			IntRound(( _ellipse.right - _ellipse.left ) / (2 * cos( M_PI / _nOfPoints ))),
-			IntRound(( _ellipse.bottom - _ellipse.top ) / (2 * cos( M_PI / _nOfPoints )))
-		};
-		break;
-
-	case OUTER:
-		epsHalfSize = {
-			( _ellipse.right - _ellipse.left ) / 2,
-			( _ellipse.bottom - _ellipse.top ) / 2
-		};
-		break;
-
-	default:
-		assert( !"Unknown ellipse type" );
-	}
+	const SIZE epsHalfSize {
+		( _ellipse.right - _ellipse.left ) >> 1,
+		( _ellipse.bottom - _ellipse.top ) >> 1
+	};
 
 	assert( epsHalfSize.cx >= 0 && epsHalfSize.cy >= 0 );
 
 	for ( int i = 0; i < _nOfPoints; ++i ) {
-		_pPoints[ i ].x = center.x + epsHalfSize.cx * cos( 2 * M_PI * i / _nOfPoints - M_PI_2 );
-		_pPoints[ i ].y = center.y + epsHalfSize.cy * sin( 2 * M_PI * i / _nOfPoints - M_PI_2 );
+		_pPoints[ i ].x = IntRound( center.x + epsHalfSize.cx * cos( 2 * M_PI * i / _nOfPoints - M_PI_2 ));
+		_pPoints[ i ].y = IntRound( center.y + epsHalfSize.cy * sin( 2 * M_PI * i / _nOfPoints - M_PI_2 ));
 	}
 }

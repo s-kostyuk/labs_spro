@@ -3,10 +3,6 @@
 
 #include <windows.h> // подключение библиотеки с функциями API
 
-enum EllipseType {
-	INNER, OUTER
-};
-
 // Предварительное описание функций
 ATOM MyRegisterClass( HINSTANCE hInstance );
 BOOL InitInstance( HINSTANCE, int );
@@ -16,8 +12,10 @@ int IntRound( double _value );
 
 POINT && GetCenternedPosition( const SIZE & _object, const RECT & _field );
 
-void PrintRegularConvexPoligon( HDC & _hdc, const short _nOfPoints, const RECT & _ellipse, EllipseType _ellipseType = OUTER );
+RECT && GetOuterEllipse( const RECT & _innerDim, const short _nOfPolygonPoints );
 
-void InitRegularPoligon( POINT * _pPoints, const short _nOfPoints, const RECT & _ellipse, EllipseType _ellipseType = OUTER );
+void DrawRegularConvexPoligon( HDC & _hdc, const short _nOfPoints, const RECT & _ellipse );
+
+void InitRegularPoligon( POINT * _pPoints, const short _nOfPoints, const RECT & _ellipse );
 
 #endif //_SUPPORT_HPP_
