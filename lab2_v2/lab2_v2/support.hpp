@@ -10,9 +10,9 @@ LRESULT CALLBACK WndProc( HWND, UINT, WPARAM, LPARAM );
 
 int IntRound( double _value );
 
-POINT && GetCenternedPosition( const SIZE & _object, const RECT & _field );
+POINT GetCenternedPosition( const SIZE & _object, const RECT & _field );
 
-RECT && GetOuterEllipse( const RECT & _innerDim, const short _nOfPolygonPoints );
+RECT GetOuterEllipse( const RECT & _innerDim, const short _nOfPolygonPoints );
 
 void DrawRegularConvexPoligon( HDC & _hdc, const short _nOfPoints, const RECT & _ellipse );
 

@@ -149,11 +149,11 @@ void PrintPolygons( HWND & _hWnd, HDC & _hdc ) {
 	GetWindowRect( _hWnd, &windowRect );
 
 	// объявление описателей кисти
-	HBRUSH hRedBrush, hGreenBrush, hOldBrush;
+	HBRUSH hRedBrush, hWhiteHashedBrush, hOldBrush;
 
 	// Создание кистей
 	hRedBrush   = CreateSolidBrush( RGB( 255, 0, 0 ) );
-	hGreenBrush = CreateSolidBrush( RGB( 0, 255, 0 ) );
+	hWhiteHashedBrush = CreateHatchBrush( HS_FDIAGONAL, RGB( 255, 255, 255 ) );
 
 	// Выбор кисти в контекст
 	hOldBrush = (HBRUSH)SelectObject( _hdc, hRedBrush ); 
@@ -186,17 +186,21 @@ void PrintPolygons( HWND & _hWnd, HDC & _hdc ) {
 	DrawRegularConvexPoligon( _hdc, nOfPolygonPoints, outerEllipse );
 
 	// Меняем кисть
-	SelectObject( _hdc, hGreenBrush );
+	SelectObject( _hdc, hWhiteHashedBrush );
+
+	COLORREF prevBackgroundColor = SetBkColor( _hdc, RGB( 255, 0, 0 ) );
 
 	// Рисуем эллипс
 	Ellipse( _hdc, epsDimensions.left, epsDimensions.top, epsDimensions.right, epsDimensions.bottom );
+
+	SetBkColor( _hdc, prevBackgroundColor );
 
 	// Выбираем старую кисть
 	SelectObject( _hdc, hOldBrush );
 
 	// Удаляем созданные кисти
 	DeleteObject( hRedBrush );
-	DeleteObject( hGreenBrush );
+	DeleteObject( hWhiteHashedBrush );
 }
 
 //  FUNCTION: WndProc(HWND, unsigned, WORD, LONG)

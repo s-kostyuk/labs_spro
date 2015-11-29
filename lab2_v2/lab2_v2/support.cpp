@@ -12,7 +12,7 @@ int IntRound( double _value ) {
 	return (int)(_value);
 }
 
-POINT && GetCenternedPosition( const SIZE & _object, const RECT & _field )
+POINT GetCenternedPosition( const SIZE & _object, const RECT & _field )
 {
 	const SIZE fieldSize{ 
 		_field.right - _field.left, 
@@ -25,7 +25,7 @@ POINT && GetCenternedPosition( const SIZE & _object, const RECT & _field )
 	};
 }
 
-RECT && GetOuterEllipse( const RECT & _innerDim, const short _nOfPolygonPoints ) {
+RECT GetOuterEllipse( const RECT & _innerDim, const short _nOfPolygonPoints ) {
 	const SIZE innerSize{
 		_innerDim.right - _innerDim.left,
 		_innerDim.bottom - _innerDim.top
