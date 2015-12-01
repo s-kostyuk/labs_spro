@@ -96,6 +96,8 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam 
 	PAINTSTRUCT ps;
 	HDC hdc;
 
+	static POINT printOutCoordinates = { 0, 0 };
+
 	switch ( message )
 	{
 	// Сообщение приходит при создании окна
@@ -107,8 +109,10 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam 
 		// Начать графический вывод
 		hdc = BeginPaint( hWnd, &ps );
 
+		char buff[ 60 ];
+
 		// Вывод информации
-		
+		TextOut( hdc, printOutCoordinates.x, printOutCoordinates.y, buff, wsprintf( buff, "Current coordinates: %dx%d", printOutCoordinates.x, printOutCoordinates.y ) );
 
 		// Закончить графический вывод
 		EndPaint( hWnd, &ps );
@@ -116,6 +120,13 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam 
 
 	case WM_DESTROY: // Завершение работы
 		PostQuitMessage( 0 );
+		break;
+
+	// По отжатию одной из клавиш мыши сохраняем новые координаты
+	case WM_LBUTTONUP: case WM_MBUTTONUP: case WM_RBUTTONUP:
+		printOutCoordinates.x = LOWORD( lParam );
+		printOutCoordinates.y = HIWORD( lParam );
+		InvalidateRect( hWnd, NULL, TRUE );
 		break;
 
 	default:
