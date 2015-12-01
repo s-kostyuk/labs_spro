@@ -1,5 +1,7 @@
 #include "support.hpp"
 
+#include <string>
+
 // Глобальные переменные:
 HINSTANCE hInst; 	// Указатель приложения
 LPCTSTR szWindowClass = "Kostyuk";
@@ -98,6 +100,8 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam 
 
 	static POINT printOutCoordinates = { 0, 0 };
 
+	static std::string teletypeBuffer;
+
 	switch ( message )
 	{
 	// Сообщение приходит при создании окна
@@ -109,10 +113,8 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam 
 		// Начать графический вывод
 		hdc = BeginPaint( hWnd, &ps );
 
-		char buff[ 60 ];
-
 		// Вывод информации
-		TextOut( hdc, printOutCoordinates.x, printOutCoordinates.y, buff, wsprintf( buff, "Current coordinates: %dx%d", printOutCoordinates.x, printOutCoordinates.y ) );
+		TextOut( hdc, printOutCoordinates.x, printOutCoordinates.y, teletypeBuffer.c_str(), teletypeBuffer.size() );
 
 		// Закончить графический вывод
 		EndPaint( hWnd, &ps );
@@ -126,6 +128,17 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam 
 	case WM_LBUTTONUP: case WM_MBUTTONUP: case WM_RBUTTONUP:
 		printOutCoordinates.x = LOWORD( lParam );
 		printOutCoordinates.y = HIWORD( lParam );
+		InvalidateRect( hWnd, NULL, TRUE );
+		break;
+
+	case WM_CHAR:
+		if ( wParam == '\b' ) {
+			if( teletypeBuffer.size() > 0 )
+				teletypeBuffer.pop_back();
+		}
+		else
+			teletypeBuffer.push_back( wParam );
+
 		InvalidateRect( hWnd, NULL, TRUE );
 		break;
 
