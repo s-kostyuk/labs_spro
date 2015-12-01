@@ -4,7 +4,7 @@
 // Глобальные переменные:
 HINSTANCE hInst; 	// Указатель приложения
 LPCTSTR szWindowClass = "Kostyuk";
-LPCTSTR szTitle = "ПЕРВАЯ ПРОГРАММА";
+LPCTSTR szTitle = "Simple app";
 
 const int xWindowSize = 400;
 const int yWindowSize = 250;
@@ -116,7 +116,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	case WM_PAINT:  // Перерисовать окно
 		hdc = BeginPaint(hWnd, &ps);	// Начать графический вывод
 		GetClientRect(hWnd, &rt); // Область окна для рисования
-		DrawText(hdc, "Привет, мир!", -1, &rt, DT_SINGLELINE | DT_CENTER | DT_VCENTER);
+		DrawText(hdc, "[Make a double click here]", -1, &rt, DT_SINGLELINE | DT_CENTER | DT_VCENTER);
 		EndPaint(hWnd, &ps);	// Закончить графический вывод
 		break;
 
@@ -131,7 +131,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	case WM_COMMAND:
 		switch (LOWORD(wParam)) {
 		case ID_ABOUT_ABOUT:
-			MessageBox(hWnd, "Created by Sergey Kostyuk", "About", MB_OK);
+			MessageBox(hWnd, "Created by Sergey Kostyuk, gr. CE-14-3", "About", MB_OK);
 			break;
 
 		case ID_CHANGE_COURSOR1:
