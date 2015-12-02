@@ -1,30 +1,37 @@
-#include "support.hpp"
-
-#include <string>
-
-// Глобальные переменные:
-HINSTANCE hInst; 	// Указатель приложения
-LPCTSTR szWindowClass = "Kostyuk";
-LPCTSTR szTitle = "lab3: input";
-const SIZE wndDefaultSize{ 600, 400 };
-
-// Основная программа 
-int APIENTRY WinMain( HINSTANCE hInstance,
-	HINSTANCE hPrevInstance,
-	LPSTR     lpCmdLine,
-	int       nShowCmd )
+#include <windows.h>
+#include <stdlib.h>
+#define BUFFER(x,y) *(pBuffer + y * cxBuffer + x)
+LRESULT CALLBACK WndProc( HWND, UINT, WPARAM, LPARAM );
+int WINAPI WinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance,
+	PSTR szCmdLine, int iCmdShow )
 {
-	MSG msg;
+	static char szAppName[] = "Typer";
+	HWND
+		hwnd;
+	MSG
+		msg;
+	WNDCLASSEX wndclass;
+	wndclass.cbSize = sizeof( wndclass );
+	wndclass.style = CS_HREDRAW | CS_VREDRAW;
+	wndclass.lpfnWndProc = WndProc;
+	wndclass.cbClsExtra = 0;
+	wndclass.cbWndExtra = 0;
+	wndclass.hInstance = hInstance;
+	wndclass.hIcon = LoadIcon( NULL, IDI_APPLICATION );
+	wndclass.hCursor = LoadCursor( NULL, IDC_ARROW );
+	wndclass.hbrBackground = (HBRUSH)GetStockObject( WHITE_BRUSH );
+	wndclass.lpszMenuName = NULL;
+	wndclass.lpszClassName = szAppName;
+	wndclass.hIconSm = LoadIcon( NULL, IDI_APPLICATION );
 
-	// Регистрация класса окна 
-	MyRegisterClass( hInstance );
-
-	// Создание окна приложения
-	if ( !InitInstance( hInstance, nShowCmd ) )
-	{
-		return FALSE;
-	}
-	// Цикл обработки сообщений
+	RegisterClassEx( &wndclass );
+	hwnd = CreateWindow( szAppName, "Typing Program",
+		WS_OVERLAPPEDWINDOW,
+		CW_USEDEFAULT, CW_USEDEFAULT,
+		CW_USEDEFAULT, CW_USEDEFAULT,
+		NULL, NULL, hInstance, NULL );
+	ShowWindow( hwnd, iCmdShow );
+	UpdateWindow( hwnd );
 	while ( GetMessage( &msg, NULL, 0, 0 ) )
 	{
 		TranslateMessage( &msg );
@@ -32,119 +39,177 @@ int APIENTRY WinMain( HINSTANCE hInstance,
 	}
 	return msg.wParam;
 }
-
-//  FUNCTION: MyRegisterClass()
-//  Регистрирует класс окна 
-ATOM MyRegisterClass( HINSTANCE hInstance )
+LRESULT CALLBACK WndProc( HWND hwnd, UINT iMsg, WPARAM wParam, LPARAM lParam )
 {
-	WNDCLASSEX wcex;
-	wcex.cbSize = sizeof( WNDCLASSEX );
-	wcex.style = CS_HREDRAW | CS_VREDRAW;	// стиль окна
-	wcex.lpfnWndProc = (WNDPROC)WndProc; // оконная процедура
-	wcex.cbClsExtra = 0;
-	wcex.cbWndExtra = 0;
-	wcex.hInstance = hInstance;		// указатель приложения
-	wcex.hIcon = LoadIcon( NULL, IDI_INFORMATION );		// определение иконки
-	wcex.hCursor = LoadCursor( NULL, IDC_ARROW );    // определение курсора
-	wcex.hbrBackground = GetSysColorBrush( COLOR_WINDOW );   // установка фона
-	wcex.lpszMenuName = NULL;		// определение меню
-	wcex.lpszClassName = szWindowClass;	// имя класса
-	wcex.hIconSm = NULL;
-
-	return RegisterClassEx( &wcex ); // регистрация класса окна
-}
-
-// FUNCTION: InitInstance(HANDLE, int)
-// Создает окно приложения и сохраняет указатель приложения в переменной hInst
-
-BOOL InitInstance( HINSTANCE hInstance, int nCmdShow )
-{
-	HWND hWnd;
-
-	hInst = hInstance; // сохраняет указатель приложения в переменной hInst
-
-	const RECT screenField{
-		0, 0,
-		GetSystemMetrics( SM_CXSCREEN ),
-		GetSystemMetrics( SM_CYSCREEN )
-	};
-
-	const POINT wndPos = GetCenternedPosition( wndDefaultSize, screenField );
-
-	hWnd = CreateWindow( szWindowClass, // имя класса окна
-		szTitle,   // имя приложения
-		WS_MINIMIZEBOX | WS_TILED | WS_SIZEBOX | WS_SYSMENU, // стиль окна
-		wndPos.x,	// положение по Х
-		wndPos.y, 	// положение по Y
-		wndDefaultSize.cx,    // размер по Х
-		wndDefaultSize.cy,    // размер по Y
-		NULL,	// описатель родительского окна
-		NULL,       // описатель меню окна
-		hInstance,  // указатель приложения
-		NULL );     // параметры создания.
-
-	if ( !hWnd ) // Если окно не создалось, функция возвращает FALSE
-		return FALSE;
-
-	ShowWindow( hWnd, nCmdShow );		// Показать окно
-	UpdateWindow( hWnd );			// Обновить окно
-	return TRUE;				//Успешное завершение функции
-}
-
-//  FUNCTION: WndProc(HWND, unsigned, WORD, LONG)
-//  Оконная процедура. Принимает и обрабатывает все сообщения, приходящие в приложение
-LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam )
-{
+	static char *pBuffer = NULL;
+	static int cxChar, cyChar, cxClient, cyClient, cxBuffer, cyBuffer,
+		xCaret, yCaret;
+	HDC
+		hdc;
+	int
+		x, y, i;
 	PAINTSTRUCT ps;
-	HDC hdc;
-
-	static POINT printOutCoordinates = { 0, 0 };
-
-	static std::string teletypeBuffer;
-
-	switch ( message )
+	TEXTMETRIC tm;
+	switch ( iMsg )
 	{
-	// Сообщение приходит при создании окна
-	case WM_CREATE: 
-		break;
-
-	// Перерисовать окно
-	case WM_PAINT:
-		// Начать графический вывод
-		hdc = BeginPaint( hWnd, &ps );
-
-		// Вывод информации
-		TextOut( hdc, printOutCoordinates.x, printOutCoordinates.y, teletypeBuffer.c_str(), teletypeBuffer.size() );
-
-		// Закончить графический вывод
-		EndPaint( hWnd, &ps );
-		break;
-
-	case WM_DESTROY: // Завершение работы
-		PostQuitMessage( 0 );
-		break;
-
-	// По отжатию одной из клавиш мыши сохраняем новые координаты
-	case WM_LBUTTONUP: case WM_MBUTTONUP: case WM_RBUTTONUP:
-		printOutCoordinates.x = LOWORD( lParam );
-		printOutCoordinates.y = HIWORD( lParam );
-		InvalidateRect( hWnd, NULL, TRUE );
-		break;
-
-	case WM_CHAR:
-		if ( wParam == '\b' ) {
-			if( teletypeBuffer.size() > 0 )
-				teletypeBuffer.pop_back();
-		}
+	case WM_CREATE:
+		hdc = GetDC( hwnd );
+		SelectObject( hdc, GetStockObject( SYSTEM_FIXED_FONT ) );
+		GetTextMetrics( hdc, &tm );
+		cxChar = tm.tmAveCharWidth;
+		cyChar = tm.tmHeight;
+		ReleaseDC( hwnd, hdc );
+		return 0;
+	case WM_SIZE:
+		// obtain window size in pixels
+		cxClient = LOWORD( lParam );
+		cyClient = HIWORD( lParam );
+		// calculate window size in characters
+		cxBuffer = max( 1, cxClient / cxChar );
+		cyBuffer = max( 1, cyClient / cyChar );
+		// allocate memory for buffer and clear it
+		if ( pBuffer != NULL )
+			free( pBuffer );
+		if ( ( pBuffer = (char *)malloc( cxBuffer * cyBuffer ) ) == NULL )
+			MessageBox( hwnd, "Window too large. Cannot "
+				"allocate enough memory.", "Typer",
+				MB_ICONEXCLAMATION | MB_OK );
 		else
-			teletypeBuffer.push_back( wParam );
-
-		InvalidateRect( hWnd, NULL, TRUE );
-		break;
-
-	default:
-		// Обработка сообщений, которые не обработаны пользователем
-		return DefWindowProc( hWnd, message, wParam, lParam );
+			for ( y = 0; y < cyBuffer; y++ )
+				for ( x = 0; x < cxBuffer; x++ )
+					BUFFER( x, y ) = ' ';
+		// set caret to upper left corner
+		xCaret = 0;
+		yCaret = 0;
+		if ( hwnd == GetFocus() )
+			SetCaretPos( xCaret * cxChar, yCaret * cyChar );
+		return 0;
+	case WM_SETFOCUS:
+		// create and show the caret
+		CreateCaret( hwnd, NULL, cxChar, cyChar );
+		SetCaretPos( xCaret * cxChar, yCaret * cyChar );
+		ShowCaret( hwnd );
+		return 0;
+	case WM_KILLFOCUS:
+		// hide and destroy the caret
+		HideCaret( hwnd );
+		DestroyCaret();
+		return 0;
+	case WM_KEYDOWN:
+		switch ( wParam )
+		{
+		case VK_HOME:
+			xCaret = 0;
+			break;
+		case VK_END:
+			xCaret = cxBuffer - 1;
+			break;
+		case VK_PRIOR:
+			yCaret = 0;
+			break;
+		case VK_NEXT:
+			yCaret = cyBuffer - 1;
+			break;
+		case VK_LEFT:
+			xCaret = max( xCaret - 1, 0 );
+			break;
+		case VK_RIGHT:
+			xCaret = min( xCaret + 1, cxBuffer - 1 );
+			break;
+		case VK_UP:
+			yCaret = max( yCaret - 1, 0 );
+			break;
+		case VK_DOWN:
+			yCaret = min( yCaret + 1, cyBuffer - 1 );
+			break;
+		case VK_DELETE:
+			for ( x = xCaret; x < cxBuffer - 1; x++ )
+				BUFFER( x, yCaret ) = BUFFER( x + 1, yCaret );
+			BUFFER( cxBuffer - 1, yCaret ) = ' ';
+			HideCaret( hwnd );
+			hdc = GetDC( hwnd );
+			SelectObject( hdc,
+				GetStockObject( SYSTEM_FIXED_FONT ) );
+			TextOut( hdc, xCaret * cxChar, yCaret * cyChar,
+				&BUFFER( xCaret, yCaret ),
+				cxBuffer - xCaret );
+			ShowCaret( hwnd );
+			ReleaseDC( hwnd, hdc );
+			break;
+		}
+		SetCaretPos( xCaret * cxChar, yCaret * cyChar );
+		return 0;
+	case WM_CHAR:
+		for ( i = 0; i < (int)LOWORD( lParam ); i++ )
+		{
+			switch ( wParam )
+			{
+			case '\b':
+				// backspace
+				if ( xCaret > 0 )
+				{
+					xCaret--;
+					SendMessage( hwnd, WM_KEYDOWN,
+						VK_DELETE, 1L );
+				}
+				break;
+			case '\t':
+				// tab
+				do
+				{
+					SendMessage( hwnd, WM_CHAR, ' ', 1L );
+				} while ( xCaret % 8 != 0 );
+				break;
+			case '\n':
+				if ( ++yCaret == cyBuffer )
+					yCaret = 0;
+				break; // line feed
+			case '\r':
+				xCaret = 0; // carriage return
+				if ( ++yCaret == cyBuffer )
+					yCaret = 0;
+				break;
+			case '\x1B':
+				// escape
+				for ( y = 0; y < cyBuffer; y++ )
+					for ( x = 0; x < cxBuffer; x++ )
+						BUFFER( x, y ) = ' ';
+				xCaret = 0;
+				yCaret = 0;
+				InvalidateRect( hwnd, NULL, FALSE );
+				break;
+			default:
+				// character codes
+				BUFFER( xCaret, yCaret ) = (char)wParam;
+				HideCaret( hwnd );
+				hdc = GetDC( hwnd );
+				SelectObject( hdc,
+					GetStockObject( SYSTEM_FIXED_FONT ) );
+				TextOut( hdc, xCaret * cxChar, yCaret * cyChar,
+					&BUFFER( xCaret, yCaret ), 1 );
+				ShowCaret( hwnd );
+				ReleaseDC( hwnd, hdc );
+				if ( ++xCaret == cxBuffer )
+				{
+					xCaret = 0;
+					if ( ++yCaret == cyBuffer )
+						yCaret = 0;
+				}
+				break;
+			}
+		}
+		SetCaretPos( xCaret * cxChar, yCaret * cyChar );
+		return 0;
+	case WM_PAINT:
+		hdc = BeginPaint( hwnd, &ps );
+		SelectObject( hdc, GetStockObject( SYSTEM_FIXED_FONT ) );
+		for ( y = 0; y < cyBuffer; y++ )
+			TextOut( hdc, 0, y * cyChar, &BUFFER( 0, y ), cxBuffer );
+		EndPaint( hwnd, &ps );
+		return 0;
+	case WM_DESTROY:
+		PostQuitMessage( 0 );
+		return 0;
 	}
-	return 0;
+	return DefWindowProc( hwnd, iMsg, wParam, lParam );
 }
