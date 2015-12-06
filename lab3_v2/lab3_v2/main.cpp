@@ -6,7 +6,7 @@
 // Глобальные переменные:
 HINSTANCE hInst; 	// Указатель приложения
 LPCTSTR szWindowClass = _T("Kostyuk");
-LPCTSTR szTitle = _T("lab3: inputвв");
+LPCTSTR szTitle = _T("lab3: input");
 const SIZE wndDefaultSize{ 600, 400 };
 
 // Основная программа 
