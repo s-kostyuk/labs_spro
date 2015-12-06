@@ -8,6 +8,7 @@ HINSTANCE hInst; 	// Указатель приложения
 LPCTSTR szWindowClass = _T("Kostyuk");
 LPCTSTR szTitle = _T("lab3: input");
 const SIZE wndDefaultSize{ 600, 400 };
+HGDIOBJ defaultFont = GetStockObject( SYSTEM_FIXED_FONT );
 
 // Основная программа 
 int APIENTRY WinMain( HINSTANCE hInstance,
@@ -31,7 +32,7 @@ int APIENTRY WinMain( HINSTANCE hInstance,
 		TranslateMessage( &msg );
 		DispatchMessage( &msg );
 	}
-	return msg.wParam;
+	return (int) msg.wParam;
 }
 
 //  FUNCTION: MyRegisterClass()
@@ -99,14 +100,35 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam 
 	PAINTSTRUCT ps;
 	HDC hdc;
 
-	static POINT printOutCoordinates = { 0, 0 };
+	static TEXTMETRIC tm;
+	static SIZE charSize;
+	static RECT clientRect;
 
-	static std::basic_string< TCHAR > teletypeBuffer;
+	static std::basic_string< TCHAR > buffer;
+	static int currCharPosition = 0;
+
+	//static POINT carriagePosition{ 0, 0 };
 
 	switch ( message )
 	{
 	// Сообщение приходит при создании окна
-	case WM_CREATE: 
+	case WM_CREATE:
+		hdc = GetDC( hWnd );
+
+		SelectObject( hdc, defaultFont );
+		
+		GetTextMetrics( hdc, &tm );
+
+		charSize.cx = tm.tmAveCharWidth;
+		charSize.cy = tm.tmHeight;
+
+		ReleaseDC( hWnd, hdc );
+
+		break;
+
+	// Изменение размеров окна
+	case WM_SIZE:
+		GetClientRect( hWnd, &clientRect );
 		break;
 
 	// Перерисовать окно
@@ -114,31 +136,81 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam 
 		// Начать графический вывод
 		hdc = BeginPaint( hWnd, &ps );
 
+		// Выбираем моноширинный шрифт
+		SelectObject( hdc, defaultFont );
+
 		// Вывод информации
-		TextOut( hdc, printOutCoordinates.x, printOutCoordinates.y, teletypeBuffer.c_str(), teletypeBuffer.size() );
+		DrawSavedText( hdc, buffer.c_str(), buffer.size(), charSize, clientRect );
 
 		// Закончить графический вывод
 		EndPaint( hWnd, &ps );
+
+		//ValidateRect( hWnd, NULL );
 		break;
 
 	case WM_DESTROY: // Завершение работы
 		PostQuitMessage( 0 );
 		break;
 
-	// По отжатию одной из клавиш мыши сохраняем новые координаты
-	case WM_LBUTTONUP: case WM_MBUTTONUP: case WM_RBUTTONUP:
-		printOutCoordinates.x = LOWORD( lParam );
-		printOutCoordinates.y = HIWORD( lParam );
-		InvalidateRect( hWnd, NULL, TRUE );
+	// Нажатие ЛКМ - фиксирование позиции курсора
+	//case WM_LBUTTONUP:
+		//break;
+
+	case WM_KEYDOWN:
+		switch ( wParam ) {
+		case VK_DELETE:
+			if ( currCharPosition < buffer.size() ) {
+				buffer.erase( currCharPosition + 1, 1 );
+			}
+			break;
+
+		case VK_LEFT:
+			if ( currCharPosition > 0 ) {
+				--currCharPosition;
+			}
+			break;
+
+		case VK_RIGHT:
+			if ( currCharPosition < buffer.size() ) {
+				++currCharPosition;
+			}
+			break;
+
+		default:
+			break;
+		}
+
 		break;
 
 	case WM_CHAR:
-		if ( wParam == '\b' ) {
-			if( teletypeBuffer.size() > 0 )
-				teletypeBuffer.pop_back();
+		switch ( wParam )
+		{
+		// New line
+		case '\r':
+			buffer.insert( currCharPosition, 1, '\n' );
+			++ currCharPosition;
+			break;
+
+		// Backspace
+		case '\b':
+			if ( currCharPosition > 0 ) {
+				-- currCharPosition;
+				buffer.erase( currCharPosition, 1 );
+			}
+			break;
+
+		// Escape
+		/*case '\x1B':
+			
+			break;
+		*/
+
+		// Other symbols
+		default:
+			buffer.insert( currCharPosition, 1, (TCHAR) wParam );
+			++ currCharPosition;
+			break;
 		}
-		else
-			teletypeBuffer.push_back( wParam );
 
 		InvalidateRect( hWnd, NULL, TRUE );
 		break;
