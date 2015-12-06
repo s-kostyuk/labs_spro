@@ -1,12 +1,12 @@
-#include "support.hpp"
+ï»¿#include "support.hpp"
 #include <cassert>
 
 #define _USE_MATH_DEFINES
 #include <cmath>
 
 int IntRound( double _value ) {
-	// Åñëè ÷èñëî áîëüøå íóëÿ - äîáàâëÿåì ê íåìó 0.5, 
-	// èíà÷å - îòíèìàåì 0.5
+	// Ð•ÑÐ»Ð¸ Ñ‡Ð¸ÑÐ»Ð¾ Ð±Ð¾Ð»ÑŒÑˆÐµ Ð½ÑƒÐ»Ñ - Ð´Ð¾Ð±Ð°Ð²Ð»ÑÐµÐ¼ Ðº Ð½ÐµÐ¼Ñƒ 0.5, 
+	// Ð¸Ð½Ð°Ñ‡Ðµ - Ð¾Ñ‚Ð½Ð¸Ð¼Ð°ÐµÐ¼ 0.5
 	_value += ( _value >= 0 ) ? 0.5 : -0.5;
 
 	return (int)(_value);

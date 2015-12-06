@@ -1,9 +1,9 @@
-#ifndef _SUPPORT_HPP_
+п»ї#ifndef _SUPPORT_HPP_
 #define _SUPPORT_HPP_
 
-#include <windows.h> // подключение библиотеки с функциями API
+#include <windows.h> // РїРѕРґРєР»СЋС‡РµРЅРёРµ Р±РёР±Р»РёРѕС‚РµРєРё СЃ С„СѓРЅРєС†РёСЏРјРё API
 
-// Предварительное описание функций
+// РџСЂРµРґРІР°СЂРёС‚РµР»СЊРЅРѕРµ РѕРїРёСЃР°РЅРёРµ С„СѓРЅРєС†РёР№
 ATOM MyRegisterClass( HINSTANCE hInstance );
 BOOL InitInstance( HINSTANCE, int );
 LRESULT CALLBACK WndProc( HWND, UINT, WPARAM, LPARAM );
