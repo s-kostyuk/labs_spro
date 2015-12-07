@@ -114,7 +114,7 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam 
 	static POINT caretPosition{ 0, 0 };
 	static Direction caretMoveDirection;
 
-	TCHAR debug[ 30 ];
+	//TCHAR debug[ 30 ];
 
 	switch ( message )
 	{
@@ -154,7 +154,7 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam 
 		DrawSavedText( hdc, preparedText, charSize, xPadding );
 
 		//TODO: Удалить строку ниже, нужна для дебага
-		TextOut( hdc, xPadding, clientRect.bottom - 10, debug, wsprintf( debug, _T("%d %d %d"), currCharPosition, buffer.size(), preparedText.size() ) );
+		//TextOut( hdc, xPadding, clientRect.bottom - 10, debug, wsprintf( debug, _T("%d %d %d"), currCharPosition, buffer.size(), preparedText.size() ) );
 
 		// Закончить графический вывод
 		EndPaint( hWnd, &ps );
@@ -228,7 +228,7 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam 
 		CaretWinPosSetter( caretPosition, charSize, xPadding );
 
 		// TODO: Убрать строку ниже, она нужна для дебага
-		InvalidateRect( hWnd, NULL, TRUE );
+		//InvalidateRect( hWnd, NULL, TRUE );
 
 		break;
 
