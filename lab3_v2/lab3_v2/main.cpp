@@ -1,6 +1,5 @@
 ﻿#include "support.hpp"
 
-#include <string>
 #include <Tchar.h>
 
 // Глобальные переменные:
@@ -104,10 +103,18 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam 
 	static SIZE charSize;
 	static RECT clientRect;
 
-	static std::basic_string< TCHAR > buffer;
+	static StdStringType buffer;
 	static int currCharPosition = 0;
 
-	//static POINT carriagePosition{ 0, 0 };
+	static std::vector< StringInfo > preparedText;
+
+	int xPadding = 10;
+	static int maxCharsInLine;
+
+	static POINT caretPosition{ 0, 0 };
+	static Direction caretMoveDirection;
+
+	TCHAR debug[ 30 ];
 
 	switch ( message )
 	{
@@ -129,10 +136,14 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam 
 	// Изменение размеров окна
 	case WM_SIZE:
 		GetClientRect( hWnd, &clientRect );
+		maxCharsInLine = (int)( (clientRect.right - clientRect.left - (xPadding << 1)) / charSize.cx );
 		break;
 
 	// Перерисовать окно
 	case WM_PAINT:
+		// Ставим каретку на место
+		CaretWinPosSetter( caretPosition, charSize, xPadding );
+
 		// Начать графический вывод
 		hdc = BeginPaint( hWnd, &ps );
 
@@ -140,45 +151,80 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam 
 		SelectObject( hdc, defaultFont );
 
 		// Вывод информации
-		DrawSavedText( hdc, buffer.c_str(), buffer.size(), charSize, clientRect );
+		DrawSavedText( hdc, preparedText, charSize, xPadding );
+
+		TextOut( hdc, xPadding, clientRect.bottom - 10, debug, wsprintf( debug, _T("%d %d"), currCharPosition, buffer.size() ) );
 
 		// Закончить графический вывод
 		EndPaint( hWnd, &ps );
 
-		//ValidateRect( hWnd, NULL );
-		break;
-
-	case WM_DESTROY: // Завершение работы
-		PostQuitMessage( 0 );
 		break;
 
 	// Нажатие ЛКМ - фиксирование позиции курсора
 	//case WM_LBUTTONUP:
 		//break;
 
+	case WM_SETFOCUS:
+		// Широкая каретка (rewrite mode)
+		//CreateCaret( hWnd, NULL, xPadding, charSize.cy );
+
+		// Каретка-палка (insert mode)
+		CreateCaret( hWnd, (HBITMAP)0, 0, charSize.cy );
+		CaretWinPosSetter( caretPosition, charSize, xPadding );
+		ShowCaret( hWnd );
+		break;
+
+	case WM_KILLFOCUS:
+		HideCaret( hWnd );
+		DestroyCaret();
+
+	// Обработка нажатия системных клавиш
 	case WM_KEYDOWN:
 		switch ( wParam ) {
 		case VK_DELETE:
-			if ( currCharPosition < buffer.size() ) {
-				buffer.erase( currCharPosition + 1, 1 );
-			}
+			if ( currCharPosition < buffer.size() ) 
+				buffer.erase( currCharPosition, 1 );
+			
+			PrepareText( buffer, preparedText, charSize, maxCharsInLine );
+			InvalidateRect( hWnd, NULL, TRUE );
 			break;
 
 		case VK_LEFT:
 			if ( currCharPosition > 0 ) {
-				--currCharPosition;
+				MoveCaret( caretPosition, Direction::LEFT, preparedText );
+				//--currCharPosition;
+				currCharPosition = GetCharNumberByPos( caretPosition, preparedText );
 			}
+			
 			break;
 
 		case VK_RIGHT:
 			if ( currCharPosition < buffer.size() ) {
-				++currCharPosition;
+				MoveCaret( caretPosition, Direction::RIGHT, preparedText );
+				//++currCharPosition;
+				currCharPosition = GetCharNumberByPos( caretPosition, preparedText );
 			}
+			
+			break;
+
+		case VK_UP:
+			MoveCaret( caretPosition, Direction::UP, preparedText );
+			currCharPosition = GetCharNumberByPos( caretPosition, preparedText );
+
+			break;
+
+		case VK_DOWN:
+			MoveCaret( caretPosition, Direction::DOWN, preparedText );
+			currCharPosition = GetCharNumberByPos( caretPosition, preparedText );
+
 			break;
 
 		default:
 			break;
 		}
+
+		InvalidateRect( hWnd, NULL, TRUE );
+		CaretWinPosSetter( caretPosition, charSize, xPadding );
 
 		break;
 
@@ -188,7 +234,9 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam 
 		// New line
 		case '\r':
 			buffer.insert( currCharPosition, 1, '\n' );
-			++ currCharPosition;
+			++ currCharPosition; 
+				
+			caretMoveDirection = Direction::RIGHT;
 			break;
 
 		// Backspace
@@ -196,6 +244,7 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam 
 			if ( currCharPosition > 0 ) {
 				-- currCharPosition;
 				buffer.erase( currCharPosition, 1 );
+				caretMoveDirection = Direction::LEFT;
 			}
 			break;
 
@@ -209,10 +258,17 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam 
 		default:
 			buffer.insert( currCharPosition, 1, (TCHAR) wParam );
 			++ currCharPosition;
+			caretMoveDirection = Direction::RIGHT;
 			break;
 		}
 
+		PrepareText( buffer, preparedText, charSize, maxCharsInLine );
+		MoveCaret( caretPosition, caretMoveDirection, preparedText );
 		InvalidateRect( hWnd, NULL, TRUE );
+		break;
+
+	case WM_DESTROY: // Завершение работы
+		PostQuitMessage( 0 );
 		break;
 
 	default:
