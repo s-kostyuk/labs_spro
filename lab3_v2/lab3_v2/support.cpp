@@ -155,13 +155,23 @@ void MoveCaret( POINT & _caretPos, Direction _d, const std::vector< StringInfo >
 			--_caretPos.x;
 
 			// Если там, куда мы пришли, хранится символ перевода строки - двигаемся влево опять
-			if( _text[ _caretPos.y ].first[ _caretPos.x ] == '\n' )
-				MoveCaret( _caretPos, Direction::LEFT, _text );
+			//if( _text[ _caretPos.y ].first[ _caretPos.x ] == '\n' )
+			//	MoveCaret( _caretPos, Direction::LEFT, _text );
 		}
 		// Иначе пробуем сдвинуться вверх
 		else {
+			while ( _caretPos.y > _text.size() ) {
+				--_caretPos.y;
+			}
+
 			if ( _caretPos.y > 0 ) {
 				_caretPos.x = _text[ _caretPos.y - 1 ].second;
+				// Если мы попали на перевод строки - уменьшаем позицию
+				if ( _text[ _caretPos.y - 1 ].first[ _caretPos.x - 1 ] == '\n' ) {
+					// Смещаем каретку влево
+					//--_caretPos.x;
+					MoveCaret( _caretPos, Direction::LEFT, _text );
+				}
 			}
 			MoveCaret( _caretPos, Direction::UP, _text );
 		}
