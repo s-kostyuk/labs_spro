@@ -41,11 +41,17 @@ void PrepareText( const StdStringType & _source, std::vector< StringInfo > & _ou
 		currLine = source + i;
 
 		// Находим окончание очередной строки
-		for ( currLineSize = 0; i < _source.size(); ++currLineSize, ++i ) {
+		for ( currLineSize = 0; i < _source.size(); ++i ) {
 			// Если нашли символ перевода строки (перевод, заданный пользователем)...
-			if ( source[ i + 1 ] == '\n'  ) {
-				//++i;
+			if ( source[ i ] == '\n'/* && currLineSize > 0*/ ) {
+				// Оставляем его след. строке
+				//--i;
+				
+				// Сохраняем
 				++currLineSize;
+
+				// Игнорируем
+
 				// Нашли конец очередной строки, выходим из внутреннего цикла
 				break;
 			}
@@ -55,6 +61,9 @@ void PrepareText( const StdStringType & _source, std::vector< StringInfo > & _ou
 				// ..нашли конец очередной строки, выходим из внутреннего цикла
 				break;
 			}
+
+			// Иначе запоминаем очередной символ
+			++currLineSize;
 		}
 
 		// Сохраняем найденную строку
@@ -82,7 +91,7 @@ void CaretWinPosSetter( const POINT & _caretPos, const SIZE & _charSize, INT _xP
 INT GetCharNumberByPos( const POINT & _caretPos, const std::vector< StringInfo > & _text ) {
 	INT nOfChar = 0;
 
-	for ( int i = 0; i < _caretPos.y; i++ ) {
+	for ( int i = 0; i < _caretPos.y /*&& i < _text.size()*/; i++ ) {
 		nOfChar += _text[ i ].second;
 	}
 
@@ -92,9 +101,13 @@ INT GetCharNumberByPos( const POINT & _caretPos, const std::vector< StringInfo >
 }
 
 void MoveCaret( POINT & _caretPos, Direction _d, const std::vector< StringInfo > & _text ) {
-	// Если текст отсутствует - нам нечего тут делать
-	if ( _text.empty() )
+	// TODO: Если эта штука сработает - ошибку будет обнаружить сложнее
+	// Если текст отсутствует - сбрасываем позицию от греха подальше
+	if ( _text.empty() ) {
+		_caretPos.x = 0;
+		_caretPos.y = 0;
 		return;
+	}
 
 	switch ( _d )
 	{
@@ -110,23 +123,27 @@ void MoveCaret( POINT & _caretPos, Direction _d, const std::vector< StringInfo >
 			--_caretPos.y;
 
 			// Если строка выше короче, чем запрошенная позиция
-			if ( ( _caretPos.x + 1 ) > _text[ _caretPos.y ].second ) {
+			if ( _caretPos.x > _text[ _caretPos.y ].second ) {
 				// Смещаем каретку влево
-				_caretPos.x = _text[ _caretPos.y ].second - 1;
+				_caretPos.x = _text[ _caretPos.y ].second/* - 1*/;
 			}
 		}
 		break;
 
 	case Direction::DOWN:
 		// Если есть куда двигаться вниз
-		if ( _caretPos.y < (_text.size() - 1) ) {
+		if ( _caretPos.y < _text.size() ) {
 			// Двигаемся вниз на одну строку
 			++_caretPos.y;
 
+			// Если строка ниже еще не существует
+			if ( _caretPos.y >= _text.size() )
+				_caretPos.x = 0;
+
 			// Если строка ниже короче, чем запрошенная позиция
-			if ( ( _caretPos.x + 1 ) > _text[ _caretPos.y ].second ) {
+			else if ( _caretPos.x > _text[ _caretPos.y ].second ) {
 				// Смещаем каретку влево
-				_caretPos.x = _text[ _caretPos.y ].second - 1;
+				_caretPos.x = _text[ _caretPos.y ].second/* - 1*/;
 			}
 		}
 		break;
@@ -136,11 +153,15 @@ void MoveCaret( POINT & _caretPos, Direction _d, const std::vector< StringInfo >
 		if ( _caretPos.x > 0 ) {
 			// Сдвигаемся влево
 			--_caretPos.x;
+
+			// Если там, куда мы пришли, хранится символ перевода строки - двигаемся влево опять
+			if( _text[ _caretPos.y ].first[ _caretPos.x ] == '\n' )
+				MoveCaret( _caretPos, Direction::LEFT, _text );
 		}
 		// Иначе пробуем сдвинуться вверх
 		else {
 			if ( _caretPos.y > 0 ) {
-				_caretPos.x = _text[ _caretPos.y - 1 ].second - 1;
+				_caretPos.x = _text[ _caretPos.y - 1 ].second;
 			}
 			MoveCaret( _caretPos, Direction::UP, _text );
 		}
@@ -149,9 +170,13 @@ void MoveCaret( POINT & _caretPos, Direction _d, const std::vector< StringInfo >
 
 	case Direction::RIGHT:
 		// Если есть куда двигаться вправо
-		if ( (_caretPos.x + 1) < _text[ _caretPos.y ].second ) {
+		if ( (_caretPos.x) < _text[ _caretPos.y ].second ) {
 			// Сдвигаемся вправо
 			++_caretPos.x;
+
+			// Если там, куда мы пришли, хранится символ перевода строки - двигаемся вправо опять
+			if ( _text[ _caretPos.y ].first[ _caretPos.x - 1 ] == '\n' )
+				MoveCaret( _caretPos, Direction::RIGHT, _text );
 		}
 		// Иначе пробуем сдвинуться вниз
 		else {

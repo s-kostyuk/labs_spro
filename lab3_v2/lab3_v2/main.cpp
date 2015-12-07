@@ -153,7 +153,8 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam 
 		// Вывод информации
 		DrawSavedText( hdc, preparedText, charSize, xPadding );
 
-		TextOut( hdc, xPadding, clientRect.bottom - 10, debug, wsprintf( debug, _T("%d %d"), currCharPosition, buffer.size() ) );
+		//TODO: Удалить строку ниже, нужна для дебага
+		TextOut( hdc, xPadding, clientRect.bottom - 10, debug, wsprintf( debug, _T("%d %d %d"), currCharPosition, buffer.size(), preparedText.size() ) );
 
 		// Закончить графический вывод
 		EndPaint( hWnd, &ps );
@@ -177,6 +178,7 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam 
 	case WM_KILLFOCUS:
 		HideCaret( hWnd );
 		DestroyCaret();
+		break;
 
 	// Обработка нажатия системных клавиш
 	case WM_KEYDOWN:
@@ -223,8 +225,10 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam 
 			break;
 		}
 
-		InvalidateRect( hWnd, NULL, TRUE );
 		CaretWinPosSetter( caretPosition, charSize, xPadding );
+
+		// TODO: Убрать строку ниже, она нужна для дебага
+		InvalidateRect( hWnd, NULL, TRUE );
 
 		break;
 
@@ -234,7 +238,7 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam 
 		// New line
 		case '\r':
 			buffer.insert( currCharPosition, 1, '\n' );
-			++ currCharPosition; 
+			//++ currCharPosition; 
 				
 			caretMoveDirection = Direction::RIGHT;
 			break;
@@ -242,8 +246,8 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam 
 		// Backspace
 		case '\b':
 			if ( currCharPosition > 0 ) {
-				-- currCharPosition;
-				buffer.erase( currCharPosition, 1 );
+				//-- currCharPosition;
+				buffer.erase( currCharPosition - 1, 1 );
 				caretMoveDirection = Direction::LEFT;
 			}
 			break;
@@ -257,13 +261,14 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam 
 		// Other symbols
 		default:
 			buffer.insert( currCharPosition, 1, (TCHAR) wParam );
-			++ currCharPosition;
+			//++ currCharPosition;
 			caretMoveDirection = Direction::RIGHT;
 			break;
 		}
 
 		PrepareText( buffer, preparedText, charSize, maxCharsInLine );
 		MoveCaret( caretPosition, caretMoveDirection, preparedText );
+		currCharPosition = GetCharNumberByPos( caretPosition, preparedText );
 		InvalidateRect( hWnd, NULL, TRUE );
 		break;
 
