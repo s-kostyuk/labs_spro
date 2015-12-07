@@ -1,8 +1,8 @@
-#include "support.hpp"
+ï»¿#include "support.hpp"
 
 int IntRound( double _value ) {
-	// Åñëè ÷èñëî áîëüøå íóëÿ - äîáàâëÿåì ê íåìó 0.5, 
-	// èíà÷å - îòíèìàåì 0.5
+	// Ð•ÑÐ»Ð¸ Ñ‡Ð¸ÑÐ»Ð¾ Ð±Ð¾Ð»ÑŒÑˆÐµ Ð½ÑƒÐ»Ñ - Ð´Ð¾Ð±Ð°Ð²Ð»ÑÐµÐ¼ Ðº Ð½ÐµÐ¼Ñƒ 0.5, 
+	// Ð¸Ð½Ð°Ñ‡Ðµ - Ð¾Ñ‚Ð½Ð¸Ð¼Ð°ÐµÐ¼ 0.5
 	_value += ( _value >= 0 ) ? 0.5 : -0.5;
 
 	return (int)( _value );
@@ -19,4 +19,31 @@ POINT GetCenternedPosition( const SIZE & _object, const RECT & _field )
 		_field.left + ( ( fieldSize.cx - _object.cx ) >> 1 ) ,
 		_field.top + ( ( fieldSize.cy - _object.cy ) >> 1 )
 	};
+}
+
+void DrawObject( HDC _hdc, const RECT & _objectCoordinates, const ObjectType _type ) {
+	switch ( _type )
+	{
+	case ObjectType::LINE:
+		MoveToEx( _hdc, _objectCoordinates.left, _objectCoordinates.top, NULL );
+		LineTo( _hdc, _objectCoordinates.right, _objectCoordinates.bottom );
+		break;
+
+	case ObjectType::ELLIPSE:
+		Ellipse( _hdc, _objectCoordinates.left, _objectCoordinates.top, _objectCoordinates.right, _objectCoordinates.bottom );
+		break;
+
+	case ObjectType::RECTANGLE:
+		Rectangle( _hdc, _objectCoordinates.left, _objectCoordinates.top, _objectCoordinates.right, _objectCoordinates.bottom );
+		break;
+
+	default:
+		break;
+	}
+}
+
+void DrawSavedObjects( HDC _hdc, const std::vector< std::pair < ObjectType, RECT > > & _saved ) {
+	for ( const std::pair < ObjectType, RECT > & _c : _saved ) {
+		DrawObject( _hdc, _c.second, _c.first );
+	}
 }

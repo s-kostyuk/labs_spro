@@ -1,14 +1,32 @@
-#include "support.hpp"
+п»ї#include "support.hpp"
 
 #include <Tchar.h>
+//#include <cassert>
+//#include <cstring>
 
-// Глобальные переменные:
-HINSTANCE hInst; 	// Указатель приложения
+// Р“Р»РѕР±Р°Р»СЊРЅС‹Рµ РїРµСЂРµРјРµРЅРЅС‹Рµ:
+HINSTANCE hInst; 	// РЈРєР°Р·Р°С‚РµР»СЊ РїСЂРёР»РѕР¶РµРЅРёСЏ
 LPCTSTR szWindowClass = _T( "Kostyuk" );
 LPCTSTR szTitle = _T( "lab4: child control windows" );
 const SIZE wndDefaultSize{ 600, 400 };
 
-// Основная программа 
+struct
+{
+	long style;
+	TCHAR * text;
+}
+const button[] =
+{
+	BS_PUSHBUTTON, "LINE",
+	BS_PUSHBUTTON, "ELLIPSE",
+	BS_PUSHBUTTON, "RECTANGLE"
+};
+
+//assert( ! strcmp( button[ ObjectType::LINE ].text, _T( "LINE" ) ) );
+
+const int nOfButtons = sizeof( button ) / sizeof( button[ 0 ] );
+
+// РћСЃРЅРѕРІРЅР°СЏ РїСЂРѕРіСЂР°РјРјР° 
 int APIENTRY WinMain( HINSTANCE hInstance,
 	HINSTANCE hPrevInstance,
 	LPSTR     lpCmdLine,
@@ -16,15 +34,15 @@ int APIENTRY WinMain( HINSTANCE hInstance,
 {
 	MSG msg;
 
-	// Регистрация класса окна 
+	// Р РµРіРёСЃС‚СЂР°С†РёСЏ РєР»Р°СЃСЃР° РѕРєРЅР° 
 	MyRegisterClass( hInstance );
 
-	// Создание окна приложения
+	// РЎРѕР·РґР°РЅРёРµ РѕРєРЅР° РїСЂРёР»РѕР¶РµРЅРёСЏ
 	if ( !InitInstance( hInstance, nShowCmd ) )
 	{
 		return FALSE;
 	}
-	// Цикл обработки сообщений
+	// Р¦РёРєР» РѕР±СЂР°Р±РѕС‚РєРё СЃРѕРѕР±С‰РµРЅРёР№
 	while ( GetMessage( &msg, NULL, 0, 0 ) )
 	{
 		TranslateMessage( &msg );
@@ -34,34 +52,34 @@ int APIENTRY WinMain( HINSTANCE hInstance,
 }
 
 //  FUNCTION: MyRegisterClass()
-//  Регистрирует класс окна 
+//  Р РµРіРёСЃС‚СЂРёСЂСѓРµС‚ РєР»Р°СЃСЃ РѕРєРЅР° 
 ATOM MyRegisterClass( HINSTANCE hInstance )
 {
 	WNDCLASSEX wcex;
 	wcex.cbSize = sizeof( WNDCLASSEX );
-	wcex.style = CS_HREDRAW | CS_VREDRAW;	// стиль окна
-	wcex.lpfnWndProc = (WNDPROC)WndProc; // оконная процедура
+	wcex.style = CS_HREDRAW | CS_VREDRAW;	// СЃС‚РёР»СЊ РѕРєРЅР°
+	wcex.lpfnWndProc = (WNDPROC)WndProc; // РѕРєРѕРЅРЅР°СЏ РїСЂРѕС†РµРґСѓСЂР°
 	wcex.cbClsExtra = 0;
 	wcex.cbWndExtra = 0;
-	wcex.hInstance = hInstance;		// указатель приложения
-	wcex.hIcon = LoadIcon( NULL, IDI_INFORMATION );		// определение иконки
-	wcex.hCursor = LoadCursor( NULL, IDC_ARROW );    // определение курсора
-	wcex.hbrBackground = GetSysColorBrush( COLOR_WINDOW );   // установка фона
-	wcex.lpszMenuName = NULL;		// определение меню
-	wcex.lpszClassName = szWindowClass;	// имя класса
+	wcex.hInstance = hInstance;		// СѓРєР°Р·Р°С‚РµР»СЊ РїСЂРёР»РѕР¶РµРЅРёСЏ
+	wcex.hIcon = LoadIcon( NULL, IDI_INFORMATION );		// РѕРїСЂРµРґРµР»РµРЅРёРµ РёРєРѕРЅРєРё
+	wcex.hCursor = LoadCursor( NULL, IDC_ARROW );    // РѕРїСЂРµРґРµР»РµРЅРёРµ РєСѓСЂСЃРѕСЂР°
+	wcex.hbrBackground = GetSysColorBrush( COLOR_WINDOW );   // СѓСЃС‚Р°РЅРѕРІРєР° С„РѕРЅР°
+	wcex.lpszMenuName = NULL;		// РѕРїСЂРµРґРµР»РµРЅРёРµ РјРµРЅСЋ
+	wcex.lpszClassName = szWindowClass;	// РёРјСЏ РєР»Р°СЃСЃР°
 	wcex.hIconSm = NULL;
 
-	return RegisterClassEx( &wcex ); // регистрация класса окна
+	return RegisterClassEx( &wcex ); // СЂРµРіРёСЃС‚СЂР°С†РёСЏ РєР»Р°СЃСЃР° РѕРєРЅР°
 }
 
 // FUNCTION: InitInstance(HANDLE, int)
-// Создает окно приложения и сохраняет указатель приложения в переменной hInst
+// РЎРѕР·РґР°РµС‚ РѕРєРЅРѕ РїСЂРёР»РѕР¶РµРЅРёСЏ Рё СЃРѕС…СЂР°РЅСЏРµС‚ СѓРєР°Р·Р°С‚РµР»СЊ РїСЂРёР»РѕР¶РµРЅРёСЏ РІ РїРµСЂРµРјРµРЅРЅРѕР№ hInst
 
 BOOL InitInstance( HINSTANCE hInstance, int nCmdShow )
 {
 	HWND hWnd;
 
-	hInst = hInstance; // сохраняет указатель приложения в переменной hInst
+	hInst = hInstance; // СЃРѕС…СЂР°РЅСЏРµС‚ СѓРєР°Р·Р°С‚РµР»СЊ РїСЂРёР»РѕР¶РµРЅРёСЏ РІ РїРµСЂРµРјРµРЅРЅРѕР№ hInst
 
 	const RECT screenField{
 		0, 0,
@@ -71,64 +89,152 @@ BOOL InitInstance( HINSTANCE hInstance, int nCmdShow )
 
 	const POINT wndPos = GetCenternedPosition( wndDefaultSize, screenField );
 
-	hWnd = CreateWindow( szWindowClass, // имя класса окна
-		szTitle,   // имя приложения
-		WS_MINIMIZEBOX | WS_TILED | WS_SIZEBOX | WS_SYSMENU, // стиль окна
-		wndPos.x,	// положение по Х
-		wndPos.y, 	// положение по Y
-		wndDefaultSize.cx,    // размер по Х
-		wndDefaultSize.cy,    // размер по Y
-		NULL,	// описатель родительского окна
-		NULL,       // описатель меню окна
-		hInstance,  // указатель приложения
-		NULL );     // параметры создания.
+	hWnd = CreateWindow( szWindowClass, // РёРјСЏ РєР»Р°СЃСЃР° РѕРєРЅР°
+		szTitle,   // РёРјСЏ РїСЂРёР»РѕР¶РµРЅРёСЏ
+		WS_MINIMIZEBOX | WS_TILED | WS_SIZEBOX | WS_SYSMENU, // СЃС‚РёР»СЊ РѕРєРЅР°
+		wndPos.x,	// РїРѕР»РѕР¶РµРЅРёРµ РїРѕ РҐ
+		wndPos.y, 	// РїРѕР»РѕР¶РµРЅРёРµ РїРѕ Y
+		wndDefaultSize.cx,    // СЂР°Р·РјРµСЂ РїРѕ РҐ
+		wndDefaultSize.cy,    // СЂР°Р·РјРµСЂ РїРѕ Y
+		NULL,	// РѕРїРёСЃР°С‚РµР»СЊ СЂРѕРґРёС‚РµР»СЊСЃРєРѕРіРѕ РѕРєРЅР°
+		NULL,       // РѕРїРёСЃР°С‚РµР»СЊ РјРµРЅСЋ РѕРєРЅР°
+		hInstance,  // СѓРєР°Р·Р°С‚РµР»СЊ РїСЂРёР»РѕР¶РµРЅРёСЏ
+		NULL );     // РїР°СЂР°РјРµС‚СЂС‹ СЃРѕР·РґР°РЅРёСЏ.
 
-	if ( !hWnd ) // Если окно не создалось, функция возвращает FALSE
+	if ( !hWnd ) // Р•СЃР»Рё РѕРєРЅРѕ РЅРµ СЃРѕР·РґР°Р»РѕСЃСЊ, С„СѓРЅРєС†РёСЏ РІРѕР·РІСЂР°С‰Р°РµС‚ FALSE
 		return FALSE;
 
-	ShowWindow( hWnd, nCmdShow );		// Показать окно
-	UpdateWindow( hWnd );			// Обновить окно
-	return TRUE;				//Успешное завершение функции
+	ShowWindow( hWnd, nCmdShow );		// РџРѕРєР°Р·Р°С‚СЊ РѕРєРЅРѕ
+	UpdateWindow( hWnd );			// РћР±РЅРѕРІРёС‚СЊ РѕРєРЅРѕ
+	return TRUE;				//РЈСЃРїРµС€РЅРѕРµ Р·Р°РІРµСЂС€РµРЅРёРµ С„СѓРЅРєС†РёРё
 }
 
 //  FUNCTION: WndProc(HWND, unsigned, WORD, LONG)
-//  Оконная процедура. Принимает и обрабатывает все сообщения, приходящие в приложение
+//  РћРєРѕРЅРЅР°СЏ РїСЂРѕС†РµРґСѓСЂР°. РџСЂРёРЅРёРјР°РµС‚ Рё РѕР±СЂР°Р±Р°С‚С‹РІР°РµС‚ РІСЃРµ СЃРѕРѕР±С‰РµРЅРёСЏ, РїСЂРёС…РѕРґСЏС‰РёРµ РІ РїСЂРёР»РѕР¶РµРЅРёРµ
 LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam )
 {
 	PAINTSTRUCT ps;
 	HDC hdc;
 
+	static std::vector< std::pair < ObjectType, RECT > > savedObjects;
+	static RECT currentObjectSize;
+	static ObjectType currentObject = ObjectType::LINE;
+
+	static HWND hwndButton[ nOfButtons ];
+	static int cxChar, cyChar;
+
 	static TEXTMETRIC tm;
-	static SIZE charSize;
 
 	switch ( message )
 	{
-		// Сообщение приходит при создании окна
+	// РЎРѕРѕР±С‰РµРЅРёРµ РїСЂРёС…РѕРґРёС‚ РїСЂРё СЃРѕР·РґР°РЅРёРё РѕРєРЅР°
 	case WM_CREATE:
+		hdc = GetDC( hWnd );
+		SelectObject( hdc, GetStockObject( SYSTEM_FIXED_FONT ) );
+			GetTextMetrics( hdc, &tm );
+		cxChar = tm.tmAveCharWidth;
+		cyChar = tm.tmHeight + tm.tmExternalLeading;
+		ReleaseDC( hWnd, hdc );
+
+		for ( int i = 0; i < nOfButtons; i++ )
+			hwndButton[ i ] = CreateWindow( _T( "button" ), button[ i ].text,
+				WS_CHILD | WS_VISIBLE | button[ i ].style,
+				cxChar, cyChar *( 1 + 2 * i ),
+				20 * cxChar, 7 * cyChar / 4,
+				hWnd, (HMENU)i,
+				( (LPCREATESTRUCT)lParam )->hInstance, NULL );
 		break;
 
-		// Изменение размеров окна
+	// РР·РјРµРЅРµРЅРёРµ СЂР°Р·РјРµСЂРѕРІ РѕРєРЅР°
 	//case WM_SIZE:
 	//	break;
 
-		// Перерисовать окно
+	case WM_LBUTTONDOWN:
+		currentObjectSize.left = LOWORD( lParam );
+		currentObjectSize.top  = HIWORD( lParam );
+		break;
+
+	case WM_MOUSEMOVE:
+		if ( wParam & MK_LBUTTON ) {
+			currentObjectSize.right = LOWORD( lParam );
+			currentObjectSize.bottom = HIWORD( lParam );
+			InvalidateRect( hWnd, NULL, TRUE );
+		}
+		break;
+
+	case WM_LBUTTONUP:
+		savedObjects.push_back( { currentObject, currentObjectSize } );
+		currentObjectSize = { 0, 0, 0, 0 };
+		break;
+
+		// РџРµСЂРµСЂРёСЃРѕРІР°С‚СЊ РѕРєРЅРѕ
 	case WM_PAINT:
-		// Начать графический вывод
+		// РќР°С‡Р°С‚СЊ РіСЂР°С„РёС‡РµСЃРєРёР№ РІС‹РІРѕРґ
 		hdc = BeginPaint( hWnd, &ps );
 
-		// Вывод информации
+		// Р’С‹РІРѕРґ РёРЅС„РѕСЂРјР°С†РёРё
+		DrawSavedObjects( hdc, savedObjects );
+		DrawObject( hdc, currentObjectSize, currentObject );
 
-		// Закончить графический вывод
+		// Р—Р°РєРѕРЅС‡РёС‚СЊ РіСЂР°С„РёС‡РµСЃРєРёР№ РІС‹РІРѕРґ
 		EndPaint( hWnd, &ps );
 
 		break;
 
-	case WM_DESTROY: // Завершение работы
+	case WM_KEYDOWN:
+		switch ( wParam )
+		{
+		case VK_DELETE:
+			savedObjects.clear();
+			InvalidateRect( hWnd, NULL, TRUE );
+			break;
+
+		default:
+			break;
+		}
+		break;
+
+	case WM_CHAR:
+		switch ( wParam )
+		{
+		case 'r':
+			currentObject = ObjectType::RECTANGLE;
+			break;
+		case 'e':
+			currentObject = ObjectType::ELLIPSE;
+			break;
+		case 'l':
+			currentObject = ObjectType::LINE;
+			break;
+		default:
+			break;
+		}
+
+		break;
+
+	case WM_DRAWITEM:
+	case WM_COMMAND:
+		switch ( LOWORD( wParam ) ) {
+		case (int)ObjectType::RECTANGLE:
+			currentObject = ObjectType::RECTANGLE;
+			break;
+		case (int)ObjectType::ELLIPSE:
+			currentObject = ObjectType::ELLIPSE;
+			break;
+		case (int)ObjectType::LINE:
+			currentObject = ObjectType::LINE;
+			break;
+		default:
+			break;
+		}
+		break;
+
+	case WM_DESTROY: // Р—Р°РІРµСЂС€РµРЅРёРµ СЂР°Р±РѕС‚С‹
 		PostQuitMessage( 0 );
 		break;
 
 	default:
-		// Обработка сообщений, которые не обработаны пользователем
+		// РћР±СЂР°Р±РѕС‚РєР° СЃРѕРѕР±С‰РµРЅРёР№, РєРѕС‚РѕСЂС‹Рµ РЅРµ РѕР±СЂР°Р±РѕС‚Р°РЅС‹ РїРѕР»СЊР·РѕРІР°С‚РµР»РµРј
 		return DefWindowProc( hWnd, message, wParam, lParam );
 	}
 	return 0;
