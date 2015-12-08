@@ -1,7 +1,7 @@
 ﻿#include "support.hpp"
 
 #include <Tchar.h>
-//#include <cassert>
+#include <cassert>
 //#include <cstring>
 
 // Глобальные переменные:
@@ -14,8 +14,7 @@ struct
 {
 	long style;
 	TCHAR * text;
-}
-const button[] =
+} const button[] =
 {
 	BS_PUSHBUTTON, "LINE",
 	BS_PUSHBUTTON, "ELLIPSE",
@@ -117,11 +116,13 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam 
 	HDC hdc;
 
 	static std::vector< std::pair < ObjectType, RECT > > savedObjects;
-	static RECT currentObjectSize;
-	static ObjectType currentObject = ObjectType::LINE;
+	static RECT currObjectSize;
+	static ObjectType currObjectType = ObjectType::LINE;
 
 	static HWND hwndButton[ nOfButtons ];
 	static int cxChar, cyChar;
+
+	static RECT invalidatedRect;
 
 	static TEXTMETRIC tm;
 
@@ -131,7 +132,7 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam 
 	case WM_CREATE:
 		hdc = GetDC( hWnd );
 		SelectObject( hdc, GetStockObject( SYSTEM_FIXED_FONT ) );
-			GetTextMetrics( hdc, &tm );
+		GetTextMetrics( hdc, &tm );
 		cxChar = tm.tmAveCharWidth;
 		cyChar = tm.tmHeight + tm.tmExternalLeading;
 		ReleaseDC( hWnd, hdc );
@@ -150,43 +151,80 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam 
 	//	break;
 
 	case WM_LBUTTONDOWN:
-		currentObjectSize.left = LOWORD( lParam );
-		currentObjectSize.top  = HIWORD( lParam );
+		// Фиксируем координаты
+		// Левый верхний угол останется фиксированным. По умолчанию считаем, что фигура будет иметь нулевой размер
+		currObjectSize.left = currObjectSize.right = LOWORD( lParam );
+		currObjectSize.top = currObjectSize.bottom = HIWORD( lParam );
+		
+		// Захватываем перемещения мыши
+		SetCapture( hWnd );
+		
+		// Переключаем фокус на наше окно (например, с дочернего окна; кнопки)
+		// Если не снять фокус с дочерноего окна - сообщения о нажатых клавишах
+		// клавиатуры будут приходить в оконнную процедуру дочернего, а не родительского окна
+
+		// TODO: Подумать о горячих клавишах
+		SetFocus( hWnd );
 		break;
 
 	case WM_MOUSEMOVE:
+		// Если мы передвигаем мышь с зажатой левой кнопкой
 		if ( wParam & MK_LBUTTON ) {
-			currentObjectSize.right = LOWORD( lParam );
-			currentObjectSize.bottom = HIWORD( lParam );
+			// Запоминаем новую координату правого верхнего угла
+			
+			currObjectSize.right = LOWORD( lParam );
+			currObjectSize.bottom = HIWORD( lParam );
+
+			// TODO: Как-то отимизировать, чтобы не перерисовывать все каждый раз
 			InvalidateRect( hWnd, NULL, TRUE );
 		}
 		break;
 
 	case WM_LBUTTONUP:
-		savedObjects.push_back( { currentObject, currentObjectSize } );
-		currentObjectSize = { 0, 0, 0, 0 };
+		// Если отпущена левая кнопка мыши и при этом фигура имеет не нулевой размер - запоминаем размеры фигуры
+		if ( currObjectSize.right != currObjectSize.left && currObjectSize.bottom != currObjectSize.top ) 
+			savedObjects.push_back( { currObjectType, currObjectSize } );
+		
+		// Сбрасываем размеры фигуры
+		currObjectSize = { 0, 0, 0, 0 };
+
+		// Освобождаем мышь
+		ReleaseCapture();
 		break;
 
-		// Перерисовать окно
+	// Перерисовать окно
 	case WM_PAINT:
 		// Начать графический вывод
 		hdc = BeginPaint( hWnd, &ps );
 
 		// Вывод информации
 		DrawSavedObjects( hdc, savedObjects );
-		DrawObject( hdc, currentObjectSize, currentObject );
+		DrawObject( hdc, currObjectSize, currObjectType );
 
 		// Закончить графический вывод
 		EndPaint( hWnd, &ps );
 
 		break;
 
+	// TODO: Может тут лучше использовать горячие клавиши?
 	case WM_KEYDOWN:
 		switch ( wParam )
 		{
-		case VK_DELETE:
+		// Очищаем буфер по нажатию ESC
+		case VK_ESCAPE:
 			savedObjects.clear();
 			InvalidateRect( hWnd, NULL, TRUE );
+			break;
+
+		// Удаляем последнюю нарисованную фигуру по нажатию DELETE
+		case VK_DELETE:
+			if ( !savedObjects.empty() ) {
+				// Перерисовываем только тот участок окна, над которым был удаляемый объект
+				InvalidateRect( hWnd, &savedObjects.rbegin()->second, TRUE );
+
+				// Удаляем последний нарисованный объект
+				savedObjects.pop_back();
+			}
 			break;
 
 		default:
@@ -194,19 +232,21 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam 
 		}
 		break;
 
+	// TODO: Может тут лучше использовать горячие клавиши?
 	case WM_CHAR:
 		switch ( wParam )
 		{
 		case 'r':
-			currentObject = ObjectType::RECTANGLE;
+			currObjectType = ObjectType::RECTANGLE;
 			break;
 		case 'e':
-			currentObject = ObjectType::ELLIPSE;
+			currObjectType = ObjectType::ELLIPSE;
 			break;
 		case 'l':
-			currentObject = ObjectType::LINE;
+			currObjectType = ObjectType::LINE;
 			break;
 		default:
+			
 			break;
 		}
 
@@ -216,15 +256,19 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam 
 	case WM_COMMAND:
 		switch ( LOWORD( wParam ) ) {
 		case (int)ObjectType::RECTANGLE:
-			currentObject = ObjectType::RECTANGLE;
+			currObjectType = ObjectType::RECTANGLE;
 			break;
+
 		case (int)ObjectType::ELLIPSE:
-			currentObject = ObjectType::ELLIPSE;
+			currObjectType = ObjectType::ELLIPSE;
 			break;
+
 		case (int)ObjectType::LINE:
-			currentObject = ObjectType::LINE;
+			currObjectType = ObjectType::LINE;
 			break;
+
 		default:
+			
 			break;
 		}
 		break;
