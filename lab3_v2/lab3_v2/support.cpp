@@ -84,6 +84,25 @@ void DrawSavedText( HDC _hdc, const std::vector< StringInfo > & _outputText, con
 	}
 }
 
+void ChangeCaret( HWND _hWnd, bool _isInsertMode, SIZE & _charSize ) {
+	// Скрываем старую каретку, если она существовала
+	HideCaret( _hWnd );
+
+	// Удаляем старую каретку, если она существовала
+	DestroyCaret();
+			
+	// Каретка-палка (insert mode)
+	if ( _isInsertMode )
+		CreateCaret( _hWnd, (HBITMAP)0, 1, _charSize.cy );
+			
+	// Широкая каретка (rewrite mode)
+	else 
+		CreateCaret( _hWnd, NULL, _charSize.cx, _charSize.cy );
+
+	// Возвращаем каретку на место
+	ShowCaret( _hWnd );
+}
+
 void CaretWinPosSetter( const POINT & _caretPos, const SIZE & _charSize, INT _xPadding ) {
 	SetCaretPos( _caretPos.x * _charSize.cx + _xPadding, _caretPos.y * _charSize.cy );
 }

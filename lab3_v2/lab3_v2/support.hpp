@@ -32,8 +32,10 @@ void DrawSavedText(
 );
 
 enum class Direction {
-	RESET, UP, DOWN, LEFT, RIGHT
+	/*NONE = -1, */RESET, UP, DOWN, LEFT, RIGHT
 };
+
+void ChangeCaret( HWND _hWnd, bool _isInsertMode, SIZE & _charSize );
 
 INT GetCharNumberByPos( const POINT & _caretPos, const std::vector< StringInfo > & _text );
 

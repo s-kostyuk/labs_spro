@@ -113,6 +113,7 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam 
 
 	static POINT caretPosition{ 0, 0 };
 	static Direction caretMoveDirection;
+	static bool isInsertMode = true;
 
 	//TCHAR debug[ 30 ];
 
@@ -130,6 +131,9 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam 
 		charSize.cy = tm.tmHeight;
 
 		ReleaseDC( hWnd, hdc );
+
+		// TODO: Удалить строку ниже
+		CreateCaret( hWnd, (HBITMAP)0, 0, charSize.cy );
 
 		break;
 
@@ -166,13 +170,12 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam 
 		//break;
 
 	case WM_SETFOCUS:
-		// Широкая каретка (rewrite mode)
-		//CreateCaret( hWnd, NULL, xPadding, charSize.cy );
-
-		// Каретка-палка (insert mode)
-		CreateCaret( hWnd, (HBITMAP)0, 0, charSize.cy );
+		ChangeCaret( hWnd, isInsertMode, charSize );
 		CaretWinPosSetter( caretPosition, charSize, xPadding );
-		ShowCaret( hWnd );
+
+		// Consider deleting of the line above
+		//ShowCaret( hWnd );
+
 		break;
 
 	case WM_KILLFOCUS:
@@ -184,11 +187,17 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam 
 	case WM_KEYDOWN:
 		switch ( wParam ) {
 		case VK_DELETE:
+			// Курсор остается в той же позиции, вне зависимости от режима ввода
 			if ( currCharPosition < buffer.size() ) 
 				buffer.erase( currCharPosition, 1 );
 			
 			PrepareText( buffer, preparedText, charSize, maxCharsInLine );
 			InvalidateRect( hWnd, NULL, TRUE );
+			break;
+
+		case VK_INSERT:
+			isInsertMode = !isInsertMode;
+			ChangeCaret( hWnd, isInsertMode, charSize );
 			break;
 
 		case VK_LEFT:
@@ -240,6 +249,7 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam 
 			buffer.insert( currCharPosition, 1, '\n' );
 			//++ currCharPosition; 
 				
+			// Тут должен быть сдвиг курсора на след. строку, вне зависимости от режима ввода
 			caretMoveDirection = Direction::RIGHT;
 			break;
 
@@ -248,6 +258,7 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam 
 			if ( currCharPosition > 0 ) {
 				//-- currCharPosition;
 				buffer.erase( currCharPosition - 1, 1 );
+				// Сдвиг курсора влево, вне зависимости от режима ввода
 				caretMoveDirection = Direction::LEFT;
 			}
 			break;
@@ -260,8 +271,25 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam 
 
 		// Other symbols
 		default:
-			buffer.insert( currCharPosition, 1, (TCHAR) wParam );
+			if ( isInsertMode ) {
+				// В режиме вставки - добавляем символ в позицию, след. за текущей
+				buffer.insert( currCharPosition, 1, (TCHAR)wParam );
+			}
+			else {
+				// В режиме замены - заменяем текущий символ
+
+				// TODO: Место для вашего бага и левых индексов
+
+				// TODO: Подпираем костылем:
+				if ( currCharPosition != buffer.size() ) {
+					buffer.at( currCharPosition ) = (TCHAR)wParam;
+				}
+				else {
+					buffer.insert( currCharPosition, 1, (TCHAR)wParam );
+				}
+			}
 			//++ currCharPosition;
+			// Сдвиг курсора вправо вне зависимости от режима ввода	
 			caretMoveDirection = Direction::RIGHT;
 			break;
 		}
