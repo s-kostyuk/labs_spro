@@ -1,6 +1,7 @@
 ﻿#include "support.hpp"
 
 #include <Tchar.h>
+#include <cassert>
 
 // Глобальные переменные:
 HINSTANCE hInst; 	// Указатель приложения
@@ -29,7 +30,7 @@ int APIENTRY WinMain( HINSTANCE hInstance,
 	while ( GetMessage( &msg, NULL, 0, 0 ) )
 	{
 		TranslateMessage( &msg );
-		DispatchMessage( &msg );
+		DispatchMessage( &msg ); 
 	}
 	return (int) msg.wParam;
 }
@@ -74,7 +75,7 @@ BOOL InitInstance( HINSTANCE hInstance, int nCmdShow )
 
 	hWnd = CreateWindow( szWindowClass, // имя класса окна
 		szTitle,   // имя приложения
-		WS_MINIMIZEBOX | WS_TILED | WS_SIZEBOX | WS_SYSMENU, // стиль окна
+		WS_OVERLAPPEDWINDOW, // стиль окна
 		wndPos.x,	// положение по Х
 		wndPos.y, 	// положение по Y
 		wndDefaultSize.cx,    // размер по Х
@@ -99,14 +100,12 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam 
 	PAINTSTRUCT ps;
 	HDC hdc;
 
-	static TEXTMETRIC tm;
 	static SIZE charSize;
-	static RECT clientRect;
-
+	
 	static StdStringType buffer;
 	static int currCharPosition = 0;
 
-	static std::vector< StringInfo > preparedText;
+	static std::vector< StringInfo > splittedText;
 
 	int xPadding = 10;
 	static int maxCharsInLine;
@@ -125,28 +124,24 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam 
 
 		SelectObject( hdc, defaultFont );
 		
-		GetTextMetrics( hdc, &tm );
-
-		charSize.cx = tm.tmAveCharWidth;
-		charSize.cy = tm.tmHeight;
+		charSize = GetCharSize( hdc );
 
 		ReleaseDC( hWnd, hdc );
-
-		// TODO: Удалить строку ниже
-		CreateCaret( hWnd, (HBITMAP)0, 0, charSize.cy );
 
 		break;
 
 	// Изменение размеров окна
 	case WM_SIZE:
-		GetClientRect( hWnd, &clientRect );
-		maxCharsInLine = (int)( (clientRect.right - clientRect.left - (xPadding << 1)) / charSize.cx );
+		maxCharsInLine = GetMaxCharsInLine( hWnd, xPadding, charSize.cx );
+		SplitTextOnDisplayRows( buffer, splittedText, maxCharsInLine );
+		
+		SeekCaret( caretPosition, currCharPosition, splittedText );
 		break;
 
 	// Перерисовать окно
 	case WM_PAINT:
 		// Ставим каретку на место
-		CaretWinPosSetter( caretPosition, charSize, xPadding );
+		CaretDisplayPosSetter( caretPosition, charSize, xPadding );
 
 		// Начать графический вывод
 		hdc = BeginPaint( hWnd, &ps );
@@ -155,7 +150,7 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam 
 		SelectObject( hdc, defaultFont );
 
 		// Вывод информации
-		DrawSavedText( hdc, preparedText, charSize, xPadding );
+		DrawSavedText( hdc, splittedText, charSize, xPadding );
 
 		//TODO: Удалить строку ниже, нужна для дебага
 		//TextOut( hdc, xPadding, clientRect.bottom - 10, debug, wsprintf( debug, _T("%d %d %d"), currCharPosition, buffer.size(), preparedText.size() ) );
@@ -171,11 +166,7 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam 
 
 	case WM_SETFOCUS:
 		ChangeCaret( hWnd, isInsertMode, charSize );
-		CaretWinPosSetter( caretPosition, charSize, xPadding );
-
-		// Consider deleting of the line above
-		//ShowCaret( hWnd );
-
+		CaretDisplayPosSetter( caretPosition, charSize, xPadding );
 		break;
 
 	case WM_KILLFOCUS:
@@ -188,11 +179,14 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam 
 		switch ( wParam ) {
 		case VK_DELETE:
 			// Курсор остается в той же позиции, вне зависимости от режима ввода
-			if ( currCharPosition < buffer.size() ) 
+
+			// Если каретка находится не после последнего символа - удаляем символ
+			if ( currCharPosition < buffer.size() ) {
 				buffer.erase( currCharPosition, 1 );
-			
-			PrepareText( buffer, preparedText, charSize, maxCharsInLine );
-			InvalidateRect( hWnd, NULL, TRUE );
+				SplitTextOnDisplayRows( buffer, splittedText, maxCharsInLine );
+				InvalidateRect( hWnd, NULL, TRUE );
+			}
+
 			break;
 
 		case VK_INSERT:
@@ -202,39 +196,40 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam 
 
 		case VK_LEFT:
 			if ( currCharPosition > 0 ) {
-				MoveCaret( caretPosition, Direction::LEFT, preparedText );
+				MoveCaret( caretPosition, Direction::LEFT, splittedText );
 				//--currCharPosition;
-				currCharPosition = GetCharNumberByPos( caretPosition, preparedText );
+				currCharPosition = GetCharNumberByPos( caretPosition, splittedText );
 			}
-			
+			assert( currCharPosition <= buffer.size() );
 			break;
 
 		case VK_RIGHT:
 			if ( currCharPosition < buffer.size() ) {
-				MoveCaret( caretPosition, Direction::RIGHT, preparedText );
+				MoveCaret( caretPosition, Direction::RIGHT, splittedText );
 				//++currCharPosition;
-				currCharPosition = GetCharNumberByPos( caretPosition, preparedText );
+				currCharPosition = GetCharNumberByPos( caretPosition, splittedText );
 			}
-			
+			assert( currCharPosition <= buffer.size() );
 			break;
 
 		case VK_UP:
-			MoveCaret( caretPosition, Direction::UP, preparedText );
-			currCharPosition = GetCharNumberByPos( caretPosition, preparedText );
-
+			MoveCaret( caretPosition, Direction::UP, splittedText );
+			currCharPosition = GetCharNumberByPos( caretPosition, splittedText );
+			assert( currCharPosition <= buffer.size() );
 			break;
 
 		case VK_DOWN:
-			MoveCaret( caretPosition, Direction::DOWN, preparedText );
-			currCharPosition = GetCharNumberByPos( caretPosition, preparedText );
-
-			break;
-
-		default:
+			// Реагируем на нажатие только если есть куда двигаться вниз
+			// Причем последняя строка - всегда пустая и не доступная для ввода
+			if ( caretPosition.y < ( (INT)splittedText.size() - 2 ) ) {
+				MoveCaret( caretPosition, Direction::DOWN, splittedText );
+				currCharPosition = GetCharNumberByPos( caretPosition, splittedText );
+				assert( currCharPosition <= buffer.size() );
+			}
 			break;
 		}
 
-		CaretWinPosSetter( caretPosition, charSize, xPadding );
+		CaretDisplayPosSetter( caretPosition, charSize, xPadding );
 
 		// TODO: Убрать строку ниже, она нужна для дебага
 		//InvalidateRect( hWnd, NULL, TRUE );
@@ -249,7 +244,7 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam 
 			buffer.insert( currCharPosition, 1, '\n' );
 			//++ currCharPosition; 
 				
-			// Тут должен быть сдвиг курсора на след. строку, вне зависимости от режима ввода
+			// Сдвиг курсора на след. строку, вне зависимости от режима ввода
 			caretMoveDirection = Direction::RIGHT;
 			break;
 
@@ -281,10 +276,19 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam 
 				// TODO: Место для вашего бага и левых индексов
 
 				// TODO: Подпираем костылем:
-				if ( currCharPosition != buffer.size() ) {
+				// Режим замены работает только когда мы не находимся в начале и конце какой-либой строки
+
+				assert( caretPosition.x >= 0 && caretPosition.y >= 0 && caretPosition.y < splittedText.size() );
+
+				// Если мы находимся не в конце какой-либо строки
+				if ( currCharPosition < splittedText.at( caretPosition.y ).second ) {
+					assert( currCharPosition < buffer.size() );
+
+					// Заменяем символ
 					buffer.at( currCharPosition ) = (TCHAR)wParam;
 				}
 				else {
+					assert( currCharPosition <= buffer.size() );
 					buffer.insert( currCharPosition, 1, (TCHAR)wParam );
 				}
 			}
@@ -294,9 +298,9 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam 
 			break;
 		}
 
-		PrepareText( buffer, preparedText, charSize, maxCharsInLine );
-		MoveCaret( caretPosition, caretMoveDirection, preparedText );
-		currCharPosition = GetCharNumberByPos( caretPosition, preparedText );
+		SplitTextOnDisplayRows( buffer, splittedText, maxCharsInLine );
+		MoveCaret( caretPosition, caretMoveDirection, splittedText );
+		currCharPosition = GetCharNumberByPos( caretPosition, splittedText );
 		InvalidateRect( hWnd, NULL, TRUE );
 		break;
 

@@ -2,6 +2,8 @@
 
 #include <cassert>
 
+/*****************************************************************************************************/
+
 int IntRound( double _value ) {
 	// Если число больше нуля - добавляем к нему 0.5, 
 	// иначе - отнимаем 0.5
@@ -23,7 +25,25 @@ POINT GetCenternedPosition( const SIZE & _object, const RECT & _field )
 	};
 }
 
-void PrepareText( const StdStringType & _source, std::vector< StringInfo > & _outputText, const SIZE & _charSize, const INT _maxChars ) {
+/*****************************************************************************************************/
+
+SIZE GetCharSize( HDC _hdc ) {
+	TEXTMETRIC tm;
+
+	GetTextMetrics( _hdc, &tm );
+
+	return SIZE{ tm.tmAveCharWidth, tm.tmHeight };
+}
+
+INT GetMaxCharsInLine( HWND _hWnd, const UINT _xPadding, const UINT _charWidth ) {
+	RECT clientRect;
+
+	GetClientRect( _hWnd, &clientRect );
+
+	return (int)( ( clientRect.right - clientRect.left - ( _xPadding << 1 ) ) / _charWidth );
+}
+
+void SplitTextOnDisplayRows( const StdStringType & _source, std::vector< StringInfo > & _outputText, const INT _maxChars ) {
 	const LPCTSTR & source = _source.c_str();
 
 	// Очищаем целевой вектор
@@ -43,14 +63,9 @@ void PrepareText( const StdStringType & _source, std::vector< StringInfo > & _ou
 		// Находим окончание очередной строки
 		for ( currLineSize = 0; i < _source.size(); ++i ) {
 			// Если нашли символ перевода строки (перевод, заданный пользователем)...
-			if ( source[ i ] == '\n'/* && currLineSize > 0*/ ) {
-				// Оставляем его след. строке
-				//--i;
-				
+			if ( source[ i ] == '\n'/* && currLineSize > 0*/ ) {		
 				// Сохраняем
 				++currLineSize;
-
-				// Игнорируем
 
 				// Нашли конец очередной строки, выходим из внутреннего цикла
 				break;
@@ -58,7 +73,10 @@ void PrepareText( const StdStringType & _source, std::vector< StringInfo > & _ou
 
 			// Если строка уже не вмещается в окно...
 			if ( currLineSize == _maxChars ) {
-				// ..нашли конец очередной строки, выходим из внутреннего цикла
+				// ...оставляем символ след. строке...
+				--i;
+
+				// ...нашли конец очередной строки, выходим из внутреннего цикла
 				break;
 			}
 
@@ -70,6 +88,8 @@ void PrepareText( const StdStringType & _source, std::vector< StringInfo > & _ou
 		_outputText.push_back( { currLine, currLineSize } );
 	}
 
+	// Добавляем одну пустую строку в конец вектора
+	_outputText.push_back( { currLine, 0 } );
 }
 
 void DrawSavedText( HDC _hdc, const std::vector< StringInfo > & _outputText, const SIZE & _charSize, const INT _xPxPadding ) {
@@ -84,33 +104,32 @@ void DrawSavedText( HDC _hdc, const std::vector< StringInfo > & _outputText, con
 	}
 }
 
-void ChangeCaret( HWND _hWnd, bool _isInsertMode, SIZE & _charSize ) {
+void ChangeCaret( HWND _hWnd, const bool _isInsertMode, const SIZE & _charSize ) {
 	// Скрываем старую каретку, если она существовала
 	HideCaret( _hWnd );
 
 	// Удаляем старую каретку, если она существовала
 	DestroyCaret();
+	
+	// Устанавливаем ширину каретки:
+	UINT caretWidth = 
+		// В режиме вставки она равна одному пикселю
+		( _isInsertMode ) ? 1 
+		// Иначе (в режиме замены) - ширине символа
+		: _charSize.cx;
 			
-	// Каретка-палка (insert mode)
-	if ( _isInsertMode )
-		CreateCaret( _hWnd, (HBITMAP)0, 1, _charSize.cy );
-			
-	// Широкая каретка (rewrite mode)
-	else 
-		CreateCaret( _hWnd, NULL, _charSize.cx, _charSize.cy );
-
+	// Создаем каретку нужного размера
+	CreateCaret( _hWnd, NULL, caretWidth, _charSize.cy );
+	
 	// Возвращаем каретку на место
 	ShowCaret( _hWnd );
-}
-
-void CaretWinPosSetter( const POINT & _caretPos, const SIZE & _charSize, INT _xPadding ) {
-	SetCaretPos( _caretPos.x * _charSize.cx + _xPadding, _caretPos.y * _charSize.cy );
 }
 
 INT GetCharNumberByPos( const POINT & _caretPos, const std::vector< StringInfo > & _text ) {
 	INT nOfChar = 0;
 
 	for ( int i = 0; i < _caretPos.y /*&& i < _text.size()*/; i++ ) {
+		assert( i < _text.size() );
 		nOfChar += _text[ i ].second;
 	}
 
@@ -119,13 +138,21 @@ INT GetCharNumberByPos( const POINT & _caretPos, const std::vector< StringInfo >
 	return nOfChar;
 }
 
-void MoveCaret( POINT & _caretPos, Direction _d, const std::vector< StringInfo > & _text ) {
+void MoveCaret( POINT & _caretPos, const Direction _d, const std::vector< StringInfo > & _text ) {
 	// TODO: Если эта штука сработает - ошибку будет обнаружить сложнее
 	// Если текст отсутствует - сбрасываем позицию от греха подальше
 	if ( _text.empty() ) {
 		_caretPos.x = 0;
 		_caretPos.y = 0;
 		return;
+	}
+
+	if ( _caretPos.y < _text.size() && _d != Direction::UP ) {
+		assert( _caretPos.x <= _text.at( _caretPos.y ).second + 1 );
+		assert( _d == Direction::LEFT || _caretPos.x <= _text.at( _caretPos.y ).second );
+	}
+	else {
+		assert( _caretPos.y <= _text.size() && ( _d == Direction::LEFT || _d == Direction::UP ) );
 	}
 
 	switch ( _d )
@@ -141,28 +168,36 @@ void MoveCaret( POINT & _caretPos, Direction _d, const std::vector< StringInfo >
 			// Двигаемся вверх на одну строку
 			--_caretPos.y;
 
-			// Если строка выше короче, чем запрошенная позиция
-			if ( _caretPos.x > _text[ _caretPos.y ].second ) {
-				// Смещаем каретку влево
-				_caretPos.x = _text[ _caretPos.y ].second/* - 1*/;
+			// Если найденная строка короче, чем запрошенная позиция
+			if ( _caretPos.x > _text.at( _caretPos.y ).second ) {
+				// ...то каретка будет указывать на конец этой строки
+				_caretPos.x = _text.at( _caretPos.y ).second/* - 1*/;
+			}
+
+			// TODO: Костыль
+			// Если мы попали на символ конца строки - сдвигаемся влево на один символ
+			if ( _caretPos.x > 0 && _text.at( _caretPos.y ).first[ _caretPos.x - 1 ] == ( TCHAR )'\n' ) {
+				--_caretPos.x;
 			}
 		}
 		break;
 
 	case Direction::DOWN:
 		// Если есть куда двигаться вниз
-		if ( _caretPos.y < _text.size() ) {
+		if ( _caretPos.y < ( (int)_text.size() - 1 ) ) {
 			// Двигаемся вниз на одну строку
 			++_caretPos.y;
 
-			// Если строка ниже еще не существует
-			if ( _caretPos.y >= _text.size() )
-				_caretPos.x = 0;
+			// Если найденная строка короче, чем запрошенная позиция
+			if ( _caretPos.x > _text.at( _caretPos.y ).second ) {
+				// ...то каретка будет указывать на конец этой строки
+				_caretPos.x = _text.at( _caretPos.y ).second;
+			}
 
-			// Если строка ниже короче, чем запрошенная позиция
-			else if ( _caretPos.x > _text[ _caretPos.y ].second ) {
-				// Смещаем каретку влево
-				_caretPos.x = _text[ _caretPos.y ].second/* - 1*/;
+			// TODO: Костыль
+			// Если мы попали на символ конца строки - сдвигаемся влево на один символ
+			if ( _caretPos.x > 0 && _text.at( _caretPos.y ).first[ _caretPos.x - 1 ] == ( TCHAR )'\n' ) {
+				--_caretPos.x;
 			}
 		}
 		break;
@@ -172,50 +207,50 @@ void MoveCaret( POINT & _caretPos, Direction _d, const std::vector< StringInfo >
 		if ( _caretPos.x > 0 ) {
 			// Сдвигаемся влево
 			--_caretPos.x;
-
-			// Если там, куда мы пришли, хранится символ перевода строки - двигаемся влево опять
-			//if( _text[ _caretPos.y ].first[ _caretPos.x ] == '\n' )
-			//	MoveCaret( _caretPos, Direction::LEFT, _text );
 		}
 		// Иначе пробуем сдвинуться вверх
 		else {
-			while ( _caretPos.y > _text.size() ) {
-				--_caretPos.y;
-			}
+			//assert( _caretPos.y < _text.size() );
 
 			if ( _caretPos.y > 0 ) {
-				_caretPos.x = _text[ _caretPos.y - 1 ].second;
-				// Если мы попали на перевод строки - уменьшаем позицию
-				if ( _text[ _caretPos.y - 1 ].first[ _caretPos.x - 1 ] == '\n' ) {
-					// Смещаем каретку влево
-					//--_caretPos.x;
-					MoveCaret( _caretPos, Direction::LEFT, _text );
-				}
+				// Перекидываем каретку в конец строки выше
+				_caretPos.x = _text.at( _caretPos.y - 1 ).second;
 			}
+			// Двигаемся вверх
 			MoveCaret( _caretPos, Direction::UP, _text );
 		}
-
+		assert( _caretPos.x <= _text.at( _caretPos.y ).second && _caretPos.x >= 0 );
 		break;
 
 	case Direction::RIGHT:
 		// Если есть куда двигаться вправо
-		if ( (_caretPos.x) < _text[ _caretPos.y ].second ) {
+		if ( _caretPos.x < _text.at( _caretPos.y ).second ) {
 			// Сдвигаемся вправо
 			++_caretPos.x;
 
 			// Если там, куда мы пришли, хранится символ перевода строки - двигаемся вправо опять
-			if ( _text[ _caretPos.y ].first[ _caretPos.x - 1 ] == '\n' )
+			if ( _text.at( _caretPos.y ).first[ _caretPos.x - 1 ] == '\n' )
 				MoveCaret( _caretPos, Direction::RIGHT, _text );
 		}
 		// Иначе пробуем сдвинуться вниз
 		else {
-			MoveCaret( _caretPos, Direction::DOWN, _text );
 			_caretPos.x = 0;
+			MoveCaret( _caretPos, Direction::DOWN, _text );
 		}
 		break;
 
 	default:
 		assert( !"Unknown direction" );
 		break;
+	}
+}
+
+// TODO: Работать будет медленно
+void SeekCaret( POINT & _caretPos, const INT _nOfChar, const std::vector< StringInfo > & _text ) {
+	_caretPos.x = 0;
+	_caretPos.y = 0;
+
+	for ( int i = 0; i < _nOfChar; ++i ) {
+		MoveCaret( _caretPos, Direction::RIGHT, _text );
 	}
 }
