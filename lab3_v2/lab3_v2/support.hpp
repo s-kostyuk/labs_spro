@@ -60,10 +60,22 @@ void SeekCaret( POINT & _caretPos, const INT _nOfChar, const std::vector< String
 
 void CaretDisplayPosSetter( const POINT & _caretPos, const SIZE & _charSize, INT _xPadding );
 
+void PlaceCaretByCursor( POINT & _caretPos, const POINT & _cursorPos, const SIZE & _charSize, const std::vector< StringInfo > & _text, const UINT _xPadding );
+
+bool IsAvailableForInput( const UINT _rowIndex, const std::vector< StringInfo > & _text );
+
+bool IsPointsToNewline( const POINT & _caretPos, const std::vector< StringInfo > & _text );
+
+void NormalizeX( POINT & _caretPos, const std::vector< StringInfo > & _text );
+
 /*****************************************************************************************************/
 
 inline void CaretDisplayPosSetter( const POINT & _caretPos, const SIZE & _charSize, INT _xPadding ) {
 	SetCaretPos( _caretPos.x * _charSize.cx + _xPadding, _caretPos.y * _charSize.cy );
+}
+
+inline bool IsPointsToNewline( const POINT & _caretPos, const std::vector< StringInfo > & _text ) {
+	return _caretPos.x > 0 && _text.at( _caretPos.y ).first[ _caretPos.x - 1 ] == '\n';
 }
 
 /*****************************************************************************************************/

@@ -47,7 +47,7 @@ ATOM MyRegisterClass( HINSTANCE hInstance )
 	wcex.cbWndExtra = 0;
 	wcex.hInstance = hInstance;		// указатель приложения
 	wcex.hIcon = LoadIcon( NULL, IDI_INFORMATION );		// определение иконки
-	wcex.hCursor = LoadCursor( NULL, IDC_ARROW );    // определение курсора
+	wcex.hCursor = LoadCursor( NULL, IDC_IBEAM );    // определение курсора
 	wcex.hbrBackground = GetSysColorBrush( COLOR_WINDOW );   // установка фона
 	wcex.lpszMenuName = NULL;		// определение меню
 	wcex.lpszClassName = szWindowClass;	// имя класса
@@ -161,8 +161,11 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam 
 		break;
 
 	// Нажатие ЛКМ - фиксирование позиции курсора
-	//case WM_LBUTTONUP:
-		//break;
+	case WM_LBUTTONUP:
+		PlaceCaretByCursor( caretPosition, { LOWORD( lParam ), HIWORD( lParam ) }, charSize, splittedText, xPadding );
+		currCharPosition = GetCharNumberByPos( caretPosition, splittedText );
+		CaretDisplayPosSetter( caretPosition, charSize, xPadding );
+		break;
 
 	case WM_SETFOCUS:
 		ChangeCaret( hWnd, isInsertMode, charSize );
@@ -178,8 +181,6 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam 
 	case WM_KEYDOWN:
 		switch ( wParam ) {
 		case VK_DELETE:
-			// Курсор остается в той же позиции, вне зависимости от режима ввода
-
 			// Если каретка находится не после последнего символа - удаляем символ
 			if ( currCharPosition < buffer.size() ) {
 				buffer.erase( currCharPosition, 1 );
@@ -198,6 +199,7 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam 
 			if ( currCharPosition > 0 ) {
 				MoveCaret( caretPosition, Direction::LEFT, splittedText );
 				//--currCharPosition;
+				//assert( GetCharNumberByPos( caretPosition, splittedText ) == ( currCharPosition ) );
 				currCharPosition = GetCharNumberByPos( caretPosition, splittedText );
 			}
 			assert( currCharPosition <= buffer.size() );
@@ -207,6 +209,7 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam 
 			if ( currCharPosition < buffer.size() ) {
 				MoveCaret( caretPosition, Direction::RIGHT, splittedText );
 				//++currCharPosition;
+				//assert( GetCharNumberByPos( caretPosition, splittedText ) == ( currCharPosition ) );
 				currCharPosition = GetCharNumberByPos( caretPosition, splittedText );
 			}
 			assert( currCharPosition <= buffer.size() );
@@ -220,8 +223,7 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam 
 
 		case VK_DOWN:
 			// Реагируем на нажатие только если есть куда двигаться вниз
-			// Причем последняя строка - всегда пустая и не доступная для ввода
-			if ( caretPosition.y < ( (INT)splittedText.size() - 2 ) ) {
+			if ( IsAvailableForInput( caretPosition.y + 1, splittedText ) ) {
 				MoveCaret( caretPosition, Direction::DOWN, splittedText );
 				currCharPosition = GetCharNumberByPos( caretPosition, splittedText );
 				assert( currCharPosition <= buffer.size() );
@@ -244,7 +246,7 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam 
 			buffer.insert( currCharPosition, 1, '\n' );
 			//++ currCharPosition; 
 				
-			// Сдвиг курсора на след. строку, вне зависимости от режима ввода
+			// Сдвиг каретки на след. строку, вне зависимости от режима ввода
 			caretMoveDirection = Direction::RIGHT;
 			break;
 
@@ -253,16 +255,10 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam 
 			if ( currCharPosition > 0 ) {
 				//-- currCharPosition;
 				buffer.erase( currCharPosition - 1, 1 );
-				// Сдвиг курсора влево, вне зависимости от режима ввода
+				// Сдвиг каретки влево, вне зависимости от режима ввода
 				caretMoveDirection = Direction::LEFT;
 			}
 			break;
-
-		// Escape
-		/*case '\x1B':
-			
-			break;
-		*/
 
 		// Other symbols
 		default:
@@ -270,30 +266,25 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam 
 				// В режиме вставки - добавляем символ в позицию, след. за текущей
 				buffer.insert( currCharPosition, 1, (TCHAR)wParam );
 			}
+
+			// В режиме замены - заменяем текущий символ
 			else {
-				// В режиме замены - заменяем текущий символ
-
-				// TODO: Место для вашего бага и левых индексов
-
-				// TODO: Подпираем костылем:
-				// Режим замены работает только когда мы не находимся в начале и конце какой-либой строки
-
 				assert( caretPosition.x >= 0 && caretPosition.y >= 0 && caretPosition.y < splittedText.size() );
 
-				// Если мы находимся не в конце какой-либо строки
-				if ( currCharPosition < splittedText.at( caretPosition.y ).second ) {
-					assert( currCharPosition < buffer.size() );
-
-					// Заменяем символ
-					buffer.at( currCharPosition ) = (TCHAR)wParam;
-				}
-				else {
+				// Если мы находимся в конце какой-либо строки - работаем как в режиме вставки
+				if ( currCharPosition >= splittedText.at( caretPosition.y ).second ) {
 					assert( currCharPosition <= buffer.size() );
 					buffer.insert( currCharPosition, 1, (TCHAR)wParam );
+
+				}
+				// Иначе заменяем символ
+				else {
+					assert( currCharPosition < buffer.size() );
+					buffer.at( currCharPosition ) = (TCHAR)wParam;
 				}
 			}
 			//++ currCharPosition;
-			// Сдвиг курсора вправо вне зависимости от режима ввода	
+			// Сдвиг каретки вправо вне зависимости от режима ввода	
 			caretMoveDirection = Direction::RIGHT;
 			break;
 		}
