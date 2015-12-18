@@ -81,7 +81,7 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
-      <WarningLevel>Level3</WarningLevel>
+      <WarningLevel>Level4</WarningLevel>
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
     </ClCompile>
@@ -118,10 +118,15 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="btn_controller.cpp" />
+    <ClCompile Include="figures.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="support.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="btn_controller.hpp" />
+    <ClInclude Include="figures.hpp" />
+    <ClInclude Include="main.hpp" />
     <ClInclude Include="support.hpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

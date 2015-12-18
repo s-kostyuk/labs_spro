@@ -1,29 +1,13 @@
-﻿#include "support.hpp"
+﻿#include "main.hpp"
 
 #include <Tchar.h>
 #include <cassert>
-//#include <cstring>
 
 // Глобальные переменные:
 HINSTANCE hInst; 	// Указатель приложения
 LPCTSTR szWindowClass = _T( "Kostyuk" );
 LPCTSTR szTitle = _T( "lab4: child control windows" );
 const SIZE wndDefaultSize{ 600, 400 };
-
-struct
-{
-	long style;
-	TCHAR * text;
-} const button[] =
-{
-	BS_PUSHBUTTON, "LINE",
-	BS_PUSHBUTTON, "ELLIPSE",
-	BS_PUSHBUTTON, "RECTANGLE"
-};
-
-//assert( ! strcmp( button[ ObjectType::LINE ].text, _T( "LINE" ) ) );
-
-const int nOfButtons = sizeof( button ) / sizeof( button[ 0 ] );
 
 // Основная программа 
 int APIENTRY WinMain( HINSTANCE hInstance,
@@ -32,6 +16,7 @@ int APIENTRY WinMain( HINSTANCE hInstance,
 	int       nShowCmd )
 {
 	MSG msg;
+
 
 	// Регистрация класса окна 
 	MyRegisterClass( hInstance );
@@ -73,7 +58,6 @@ ATOM MyRegisterClass( HINSTANCE hInstance )
 
 // FUNCTION: InitInstance(HANDLE, int)
 // Создает окно приложения и сохраняет указатель приложения в переменной hInst
-
 BOOL InitInstance( HINSTANCE hInstance, int nCmdShow )
 {
 	HWND hWnd;
@@ -90,7 +74,7 @@ BOOL InitInstance( HINSTANCE hInstance, int nCmdShow )
 
 	hWnd = CreateWindow( szWindowClass, // имя класса окна
 		szTitle,   // имя приложения
-		WS_MINIMIZEBOX | WS_TILED | WS_SIZEBOX | WS_SYSMENU, // стиль окна
+		WS_OVERLAPPEDWINDOW, // стиль окна
 		wndPos.x,	// положение по Х
 		wndPos.y, 	// положение по Y
 		wndDefaultSize.cx,    // размер по Х
@@ -115,35 +99,20 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam 
 	PAINTSTRUCT ps;
 	HDC hdc;
 
-	static std::vector< std::pair < ObjectType, RECT > > savedObjects;
-	static RECT currObjectSize;
-	static ObjectType currObjectType = ObjectType::LINE;
-
-	static HWND hwndButton[ nOfButtons ];
-	static int cxChar, cyChar;
+	static std::vector< FigureInfo > savedObjects;
+	static RECT currObjectDim;
+	static FigureType currObjectType = FigureType::LINE;
 
 	static RECT invalidatedRect;
 
-	static TEXTMETRIC tm;
+	static BtnController buttons;
 
 	switch ( message )
 	{
 	// Сообщение приходит при создании окна
 	case WM_CREATE:
-		hdc = GetDC( hWnd );
-		SelectObject( hdc, GetStockObject( SYSTEM_FIXED_FONT ) );
-		GetTextMetrics( hdc, &tm );
-		cxChar = tm.tmAveCharWidth;
-		cyChar = tm.tmHeight + tm.tmExternalLeading;
-		ReleaseDC( hWnd, hdc );
+		buttons.CreateWindows( hWnd );
 
-		for ( int i = 0; i < nOfButtons; i++ )
-			hwndButton[ i ] = CreateWindow( _T( "button" ), button[ i ].text,
-				WS_CHILD | WS_VISIBLE | button[ i ].style,
-				cxChar, cyChar *( 1 + 2 * i ),
-				20 * cxChar, 7 * cyChar / 4,
-				hWnd, (HMENU)i,
-				( (LPCREATESTRUCT)lParam )->hInstance, NULL );
 		break;
 
 	// Изменение размеров окна
@@ -153,11 +122,11 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam 
 	case WM_LBUTTONDOWN:
 		// Фиксируем координаты
 		// Левый верхний угол останется фиксированным. По умолчанию считаем, что фигура будет иметь нулевой размер
-		currObjectSize.left = currObjectSize.right = LOWORD( lParam );
-		currObjectSize.top = currObjectSize.bottom = HIWORD( lParam );
+		currObjectDim.left = currObjectDim.right = LOWORD( lParam );
+		currObjectDim.top = currObjectDim.bottom = HIWORD( lParam );
 		
 		// Захватываем перемещения мыши
-		SetCapture( hWnd );
+		//SetCapture( hWnd );
 		
 		// Переключаем фокус на наше окно (например, с дочернего окна; кнопки)
 		// Если не снять фокус с дочерноего окна - сообщения о нажатых клавишах
@@ -172,8 +141,8 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam 
 		if ( wParam & MK_LBUTTON ) {
 			// Запоминаем новую координату правого верхнего угла
 			
-			currObjectSize.right = LOWORD( lParam );
-			currObjectSize.bottom = HIWORD( lParam );
+			currObjectDim.right = LOWORD( lParam );
+			currObjectDim.bottom = HIWORD( lParam );
 
 			// TODO: Как-то отимизировать, чтобы не перерисовывать все каждый раз
 			InvalidateRect( hWnd, NULL, TRUE );
@@ -182,14 +151,15 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam 
 
 	case WM_LBUTTONUP:
 		// Если отпущена левая кнопка мыши и при этом фигура имеет не нулевой размер - запоминаем размеры фигуры
-		if ( currObjectSize.right != currObjectSize.left && currObjectSize.bottom != currObjectSize.top ) 
-			savedObjects.push_back( { currObjectType, currObjectSize } );
+		if ( currObjectDim.right != currObjectDim.left && ! HasZeroSize( currObjectDim) ) 
+			savedObjects.push_back( { currObjectType, currObjectDim } );
 		
 		// Сбрасываем размеры фигуры
-		currObjectSize = { 0, 0, 0, 0 };
+		memset( &currObjectDim, 0, sizeof( currObjectDim ) );
+		//currObjectDim = { 0, 0, 0, 0 };
 
 		// Освобождаем мышь
-		ReleaseCapture();
+		//ReleaseCapture();
 		break;
 
 	// Перерисовать окно
@@ -199,7 +169,7 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam 
 
 		// Вывод информации
 		DrawSavedObjects( hdc, savedObjects );
-		DrawObject( hdc, currObjectSize, currObjectType );
+		DrawObject( hdc, currObjectType, currObjectDim );
 
 		// Закончить графический вывод
 		EndPaint( hWnd, &ps );
@@ -220,7 +190,7 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam 
 		case VK_DELETE:
 			if ( !savedObjects.empty() ) {
 				// Перерисовываем только тот участок окна, над которым был удаляемый объект
-				InvalidateRect( hWnd, &savedObjects.rbegin()->second, TRUE );
+				InvalidateRect( hWnd, &savedObjects.rbegin()->m_dim, TRUE );
 
 				// Удаляем последний нарисованный объект
 				savedObjects.pop_back();
@@ -237,14 +207,17 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam 
 		switch ( wParam )
 		{
 		case 'r':
-			currObjectType = ObjectType::RECTANGLE;
+			currObjectType = FigureType::RECTANGLE;
 			break;
+
 		case 'e':
-			currObjectType = ObjectType::ELLIPSE;
+			currObjectType = FigureType::ELLIPSE;
 			break;
+
 		case 'l':
-			currObjectType = ObjectType::LINE;
+			currObjectType = FigureType::LINE;
 			break;
+
 		default:
 			
 			break;
@@ -254,23 +227,9 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam 
 
 	case WM_DRAWITEM:
 	case WM_COMMAND:
-		switch ( LOWORD( wParam ) ) {
-		case (int)ObjectType::RECTANGLE:
-			currObjectType = ObjectType::RECTANGLE;
-			break;
-
-		case (int)ObjectType::ELLIPSE:
-			currObjectType = ObjectType::ELLIPSE;
-			break;
-
-		case (int)ObjectType::LINE:
-			currObjectType = ObjectType::LINE;
-			break;
-
-		default:
-			
-			break;
-		}
+		assert( buttons.HandleClick( message, wParam, lParam ) != BtnController::BTN_UNKNOWN );
+		currObjectType = (FigureType)buttons.HandleClick( message, wParam, lParam );
+		
 		break;
 
 	case WM_DESTROY: // Завершение работы
