@@ -272,7 +272,7 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam 
 				assert( caretPosition.x >= 0 && caretPosition.y >= 0 && caretPosition.y < splittedText.size() );
 
 				// Если мы находимся в конце какой-либо строки - работаем как в режиме вставки
-				if ( currCharPosition >= splittedText.at( caretPosition.y ).second ) {
+				if ( caretPosition.x >= splittedText.at( caretPosition.y ).second ) {
 					assert( currCharPosition <= buffer.size() );
 					buffer.insert( currCharPosition, 1, (TCHAR)wParam );
 
