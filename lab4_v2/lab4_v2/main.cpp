@@ -99,7 +99,7 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam 
 	PAINTSTRUCT ps;
 	HDC hdc;
 
-	static std::vector< FigureInfo > savedObjects;
+	static DrawingArea savedObjects( hWnd );
 	static RECT currObjectDim;
 	static FigureType currObjectType = FigureType::LINE;
 
@@ -168,7 +168,7 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam 
 		hdc = BeginPaint( hWnd, &ps );
 
 		// Вывод информации
-		DrawSavedObjects( hdc, savedObjects );
+		savedObjects.redraw_in( hdc );
 		DrawObject( hdc, currObjectType, currObjectDim );
 
 		// Закончить графический вывод
@@ -188,14 +188,24 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam 
 
 		// Удаляем последнюю нарисованную фигуру по нажатию DELETE
 		case VK_DELETE:
-			if ( !savedObjects.empty() ) {
+			//if ( !savedObjects.empty() ) {
 				// Перерисовываем только тот участок окна, над которым был удаляемый объект
-				InvalidateRect( hWnd, &savedObjects.rbegin()->m_dim, TRUE );
+				//InvalidateRect( hWnd, &savedObjects.rbegin()->m_dim, TRUE );
+				InvalidateRect( hWnd, NULL, TRUE );
 
 				// Удаляем последний нарисованный объект
-				savedObjects.pop_back();
-			}
+				savedObjects.try_pop_back();
+			//}
 			break;
+		/*
+		case VK_F1:
+			ScrollWindowEx( hWnd, 0, 20, NULL, NULL, NULL, NULL, SW_ERASE );
+			break;
+
+		case VK_F2:
+			ScrollWindowEx( hWnd, 0, -20, NULL, NULL, NULL, NULL, SW_ERASE );
+			break;
+		*/
 
 		default:
 			break;

@@ -41,7 +41,7 @@
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>v140</PlatformToolset>
-    <CharacterSet>MultiByte</CharacterSet>
+    <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
@@ -119,12 +119,14 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="btn_controller.cpp" />
+    <ClCompile Include="drawing_area.cpp" />
     <ClCompile Include="figures.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="support.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="btn_controller.hpp" />
+    <ClInclude Include="drawing_area.hpp" />
     <ClInclude Include="figures.hpp" />
     <ClInclude Include="main.hpp" />
     <ClInclude Include="support.hpp" />

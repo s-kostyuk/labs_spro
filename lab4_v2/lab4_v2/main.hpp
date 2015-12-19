@@ -7,6 +7,7 @@
 
 #include "btn_controller.hpp"
 #include "figures.hpp"
+#include "drawing_area.hpp"
 
 /*****************************************************************************/
 

@@ -25,8 +25,9 @@ struct FigureInfo
 };
 
 /*****************************************************************************/
-
+/*
 void DrawSavedObjects( HDC _hdc, const std::vector< FigureInfo > & _saved );
+*/
 
 void DrawObject( HDC _hdc, const FigureType _type, const RECT & _objectCoordinates );
 
