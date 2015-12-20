@@ -16,9 +16,11 @@ void BtnController::InitButtons() {
 
 /*****************************************************************************/
 
-void BtnController::CreateWindows( const HWND _parentWindow ) {
+void BtnController::CreateWindows( const HWND _parentWindow, const UINT _startHMenuValue ) {
 	SIZE charSize;
 	TEXTMETRIC tm;
+
+	m_startHMenuValue = (HMENU)_startHMenuValue;
 
 	HDC hdc = GetDC( _parentWindow );
 	SelectObject( hdc, GetStockObject( SYSTEM_FIXED_FONT ) );
@@ -29,20 +31,21 @@ void BtnController::CreateWindows( const HWND _parentWindow ) {
 
 	HINSTANCE hInstance = (HINSTANCE)GetWindowLongPtr( _parentWindow, GWLP_HINSTANCE );
 
-	for ( int i = 0; i < m_buttons.size(); i++ )
-		m_buttons.at( i ).m_hWnd = 
-		CreateWindow( 
-			_T( "button" ), 
-			m_buttons.at( i ).m_name.c_str(),
-			WS_CHILD | WS_VISIBLE | m_buttons.at( i ).m_style,
-			charSize.cx, 
-			charSize.cy *( 1 + 2 * i ),
-			20 * charSize.cx, 
-			7 * charSize.cy / 4,
-			_parentWindow, 
-			(HMENU)i,
-			hInstance, NULL 
-		);
+	for ( int i = 0; i < m_buttons.size(); i++ ) {
+		m_buttons.at( i ).m_hWnd =
+			CreateWindow(
+				_T( "button" ),
+				m_buttons.at( i ).m_name.c_str(),
+				WS_CHILD | WS_VISIBLE | m_buttons.at( i ).m_style,
+				charSize.cx,
+				charSize.cy *( 1 + 2 * i ),
+				20 * charSize.cx,
+				7 * charSize.cy / 4,
+				_parentWindow,
+				(HMENU)( i + _startHMenuValue ),
+				hInstance, NULL
+			);
+	}
 }
 
 /*****************************************************************************/
@@ -58,7 +61,7 @@ BtnController::HandleClick( const UINT _message, const WPARAM _wParam, const LPA
 {
 	assert( _message == WM_DRAWITEM || _message == WM_COMMAND );
 
-	if ( LOWORD( _wParam ) >= N_OF_BUTTONS )
+	if ( (LOWORD( _wParam ) - (int)m_startHMenuValue) >= N_OF_BUTTONS )
 		return BTN_UNKNOWN;
 	
 	/*
@@ -82,7 +85,7 @@ BtnController::HandleClick( const UINT _message, const WPARAM _wParam, const LPA
 	break;
 	*/
 
-	return (ButtonID)LOWORD( _wParam );
+	return (ButtonID)( LOWORD( _wParam ) - (int)m_startHMenuValue );
 }
 
 /*****************************************************************************/

@@ -82,7 +82,8 @@ BOOL InitInstance( HINSTANCE hInstance, int nCmdShow )
 		NULL,	// описатель родительского окна
 		NULL,       // описатель меню окна
 		hInstance,  // указатель приложения
-		NULL );     // параметры создания.
+		NULL // параметры создания.
+	);     
 
 	if ( !hWnd ) // Если окно не создалось, функция возвращает FALSE
 		return FALSE;
@@ -99,7 +100,7 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam 
 	PAINTSTRUCT ps;
 	HDC hdc;
 
-	static DrawingArea savedObjects( hWnd );
+	static DrawingArea savedObjects;
 	static RECT currObjectDim;
 	static FigureType currObjectType = FigureType::LINE;
 
@@ -112,12 +113,13 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam 
 	// Сообщение приходит при создании окна
 	case WM_CREATE:
 		buttons.CreateWindows( hWnd );
-
+		savedObjects.create_scrolls( hWnd );
 		break;
 
 	// Изменение размеров окна
-	//case WM_SIZE:
-	//	break;
+	case WM_SIZE:
+		savedObjects.resize( { LOWORD( lParam ), HIWORD( lParam ) } );
+		break;
 
 	case WM_LBUTTONDOWN:
 		// Фиксируем координаты

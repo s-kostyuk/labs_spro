@@ -27,7 +27,7 @@ public:
 	// Конструктор, заполняет контейнер с информацией о кнопках
 	explicit BtnController();
 
-	void CreateWindows( const HWND _parentWindow );
+	void CreateWindows( const HWND _parentWindow, const UINT _startHMenuValue = 100 );
 
 	// Обрабатывает сообщения о нажатии кнопки
 	ButtonID HandleClick( const UINT _message, const WPARAM _wParam, const LPARAM _lParam );
@@ -43,6 +43,9 @@ private:
 
 	// Массив кнопок
 	std::array< ButtonInfo, (SIZE_T)ButtonID::N_OF_BUTTONS > m_buttons;
+
+	// Начальное значение идентификатора кнопки
+	HMENU m_startHMenuValue;
 
 	void InitButtons();
 };
