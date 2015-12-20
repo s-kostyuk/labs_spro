@@ -22,7 +22,7 @@ inline void MoveSomeScroll( WPARAM _wParam, LONG & _targetOffset, const LONG & _
 		// fall through 
 
 	case SB_LINEDOWN:
-		_targetOffset = min( _drawedSize, _targetOffset + 16 );
+		_targetOffset = min( _drawedSize - _clientSize, _targetOffset + 16 );
 		break;
 
 	case SB_PAGEUP:
@@ -284,6 +284,16 @@ void DrawingArea::clear() {
 	memset( &m_drawedSize, 0, sizeof( m_drawedSize ) );
 
 	place_scrolls();
+}
+
+/*****************************************************************************/
+
+void DrawingArea::wheel_move( WPARAM _wParam ) {
+	INT nOfRows = GET_WHEEL_DELTA_WPARAM( _wParam ) / WHEEL_DELTA;
+
+	SHORT direction = ( nOfRows < 0 ) ? SB_LINEDOWN : SB_LINEUP;
+
+	v_scroll_move( direction );
 }
 
 /*****************************************************************************/

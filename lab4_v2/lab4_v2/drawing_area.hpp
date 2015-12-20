@@ -35,6 +35,7 @@ public:
 
 	void h_scroll_move( WPARAM _wParam );
 	void v_scroll_move( WPARAM _wParam );
+	void wheel_move( WPARAM _wParam );
 
 private:
 

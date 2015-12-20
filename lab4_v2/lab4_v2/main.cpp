@@ -101,11 +101,11 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam 
 	PAINTSTRUCT ps;
 	HDC hdc;
 
-	static DrawingArea savedObjects;
+	static DrawingArea drawArea;
 	static RECT currObjectDim;
 	static FigureType currObjectType = FigureType::LINE;
 
-	static RECT invalidatedRect;
+	//static RECT invalidatedRect;
 
 	static BtnController buttons;
 
@@ -114,12 +114,12 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam 
 	// Сообщение приходит при создании окна
 	case WM_CREATE:
 		buttons.CreateWindows( hWnd );
-		savedObjects.create_scrolls( hWnd );
+		drawArea.create_scrolls( hWnd );
 		break;
 
 	// Изменение размеров окна
 	case WM_SIZE:
-		savedObjects.resize( { LOWORD( lParam ), HIWORD( lParam ) } );
+		drawArea.resize( { LOWORD( lParam ), HIWORD( lParam ) } );
 		break;
 
 	case WM_LBUTTONDOWN:
@@ -155,7 +155,7 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam 
 	case WM_LBUTTONUP:
 		// Если отпущена левая кнопка мыши и при этом фигура имеет не нулевой размер - запоминаем размеры фигуры
 		if ( currObjectDim.right != currObjectDim.left && ! HasZeroSize( currObjectDim) ) 
-			savedObjects.push_back( { currObjectType, currObjectDim } );
+			drawArea.push_back( { currObjectType, currObjectDim } );
 		
 		// Сбрасываем размеры фигуры
 		memset( &currObjectDim, 0, sizeof( currObjectDim ) );
@@ -165,13 +165,18 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam 
 		ReleaseCapture();
 		break;
 
+	case WM_MOUSEWHEEL:
+		drawArea.wheel_move( wParam );
+		InvalidateRect( hWnd, NULL, TRUE );
+		break;
+
 	// Перерисовать окно
 	case WM_PAINT:
 		// Начать графический вывод
 		hdc = BeginPaint( hWnd, &ps );
 
 		// Вывод информации
-		savedObjects.redraw_in( hdc );
+		drawArea.redraw_in( hdc );
 		DrawObject( hdc, currObjectType, currObjectDim );
 
 		// Закончить графический вывод
@@ -180,12 +185,12 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam 
 		break;
 
 	case WM_HSCROLL:
-		savedObjects.h_scroll_move( wParam );
+		drawArea.h_scroll_move( wParam );
 		InvalidateRect( hWnd, NULL, TRUE );
 		break;
 
 	case WM_VSCROLL:
-		savedObjects.v_scroll_move( wParam );
+		drawArea.v_scroll_move( wParam );
 		InvalidateRect( hWnd, NULL, TRUE );
 		break;
 
@@ -193,23 +198,27 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam 
 	case WM_KEYDOWN:
 		switch ( wParam )
 		{
-		// Очищаем буфер по нажатию ESC
+			// Очищаем буфер по нажатию ESC
 		case VK_ESCAPE:
-			savedObjects.clear();
+			drawArea.clear();
 			InvalidateRect( hWnd, NULL, TRUE );
 			break;
 
-		// Удаляем последнюю нарисованную фигуру по нажатию DELETE
+			// Удаляем последнюю нарисованную фигуру по нажатию DELETE
 		case VK_DELETE:
 			//if ( !savedObjects.empty() ) {
 				// Перерисовываем только тот участок окна, над которым был удаляемый объект
 				//InvalidateRect( hWnd, &savedObjects.rbegin()->m_dim, TRUE );
-				InvalidateRect( hWnd, NULL, TRUE );
 
-				// Удаляем последний нарисованный объект
-				savedObjects.try_pop_back();
+				// Перерисовываем все
+			InvalidateRect( hWnd, NULL, TRUE );
+
+			// Удаляем последний нарисованный объект
+			drawArea.try_pop_back();
 			//}
+
 			break;
+
 		/*
 		case VK_F1:
 			ScrollWindowEx( hWnd, 0, 20, NULL, NULL, NULL, NULL, SW_ERASE );
@@ -219,9 +228,6 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam 
 			ScrollWindowEx( hWnd, 0, -20, NULL, NULL, NULL, NULL, SW_ERASE );
 			break;
 		*/
-
-		default:
-			break;
 		}
 		break;
 
@@ -239,10 +245,6 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam 
 
 		case 'l':
 			currObjectType = FigureType::LINE;
-			break;
-
-		default:
-			
 			break;
 		}
 
