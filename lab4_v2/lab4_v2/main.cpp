@@ -2,6 +2,7 @@
 
 #include <Tchar.h>
 #include <cassert>
+#include <windowsx.h>
 
 // Глобальные переменные:
 HINSTANCE hInst; 	// Указатель приложения
@@ -128,7 +129,7 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam 
 		currObjectDim.top = currObjectDim.bottom = HIWORD( lParam );
 		
 		// Захватываем перемещения мыши
-		//SetCapture( hWnd );
+		SetCapture( hWnd );
 		
 		// Переключаем фокус на наше окно (например, с дочернего окна; кнопки)
 		// Если не снять фокус с дочерноего окна - сообщения о нажатых клавишах
@@ -143,8 +144,8 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam 
 		if ( wParam & MK_LBUTTON ) {
 			// Запоминаем новую координату правого верхнего угла
 			
-			currObjectDim.right = LOWORD( lParam );
-			currObjectDim.bottom = HIWORD( lParam );
+			currObjectDim.right = GET_X_LPARAM( lParam );
+			currObjectDim.bottom = GET_Y_LPARAM( lParam );
 
 			// TODO: Как-то отимизировать, чтобы не перерисовывать все каждый раз
 			InvalidateRect( hWnd, NULL, TRUE );
@@ -161,7 +162,7 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam 
 		//currObjectDim = { 0, 0, 0, 0 };
 
 		// Освобождаем мышь
-		//ReleaseCapture();
+		ReleaseCapture();
 		break;
 
 	// Перерисовать окно
@@ -176,6 +177,16 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam 
 		// Закончить графический вывод
 		EndPaint( hWnd, &ps );
 
+		break;
+
+	case WM_HSCROLL:
+		savedObjects.h_scroll_move( wParam );
+		InvalidateRect( hWnd, NULL, TRUE );
+		break;
+
+	case WM_VSCROLL:
+		savedObjects.v_scroll_move( wParam );
+		InvalidateRect( hWnd, NULL, TRUE );
 		break;
 
 	// TODO: Может тут лучше использовать горячие клавиши?
