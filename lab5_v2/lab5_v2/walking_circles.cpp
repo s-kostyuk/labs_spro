@@ -1,68 +1,21 @@
-#include "walking_circles.hpp"
+﻿#include "walking_circles.hpp"
 #include "support.hpp"
 
 #include <cstdlib>
 #include <ctime>
 #include <cassert>
 
-enum class Axis {
-	UNDEF = -1, X, Y, N_OF_AXES
-};
-
 enum class Direction {
 	DONT_MOVE = -1, LEFT, RIGHT, UP, DOWN, N_OF_DIRECTIONS
 };
 
-Axis GetRandomAxis() {
-	return (Axis)(rand() % (INT)Axis::N_OF_AXES);
-}
-
-Axis GetAxis( const Direction _direction ) {
-	switch ( _direction )
-	{
-	case Direction::DONT_MOVE:
-		return Axis::UNDEF;
-		break;
-
-	case Direction::LEFT:
-	case Direction::RIGHT:
-		return Axis::X;
-		break;
-
-	case Direction::UP:
-	case Direction::DOWN:
-		return Axis::Y;
-		break;
-
-	default:
-		assert( !"Wrong direction" );
-	}
-}
-
-Direction GetRandDirection( const Axis _preferredAxis ) {
-	switch ( _preferredAxis )
-	{
-	case Axis::UNDEF:
-		return (Direction)( rand() % (int)Direction::N_OF_DIRECTIONS );
-		break;
-
-	case Axis::X:
-		return (Direction)( rand() % 2 );
-		break;
-
-	case Axis::Y:
-		return (Direction)( rand() % 2 + 2 );
-		break;
-
-	default:
-		assert( ! "Wrong axis" );
-		break;
-	}
+Direction GetRandDirection() {
+	return  (Direction)( rand() % (int)Direction::N_OF_DIRECTIONS );
 }
 
 //PVOID pvoid
 
-void DetermineDirection( Direction & _targetDir, const POINT & _currPoint, const SIZE & _figureSize, const RECT & _clientRect, const Axis _preferredAxis = Axis::UNDEF ) {
+void DetermineDirection( Direction & _targetDir, const POINT & _currPoint, const SIZE & _figureSize, const RECT & _clientRect ) {
 	if ( _currPoint.x < _clientRect.left )
 		_targetDir = Direction::RIGHT;
 
@@ -75,9 +28,7 @@ void DetermineDirection( Direction & _targetDir, const POINT & _currPoint, const
 	else if ( _currPoint.y + _figureSize.cy > _clientRect.bottom )
 		_targetDir = Direction::UP;
 
-	else if ( GetAxis(  _targetDir ) != _preferredAxis ) {
-		_targetDir = GetRandDirection( _preferredAxis );
-	}
+	//else {} // Оставить неизменной
 }
 
 void MoveInDirection( POINT & _targetPos, const Direction _direction, const UINT _step = 1 ) {
@@ -116,15 +67,13 @@ void WalkCircleThread( PVOID _pvoid ) {
 	const UINT step = 1;
 
 	Direction direction;
-	Axis preferredAxis = GetRandomAxis();
+	POINT circlePos = pParams->m_startPoint;
 
 	direction = (Direction)( rand() % (int)Direction::N_OF_DIRECTIONS );
 
-	POINT circlePos = pParams->m_startPoint;
-
 	while ( ! pParams->m_bKill )
 	{
-		DetermineDirection( direction, circlePos, circleSize, pParams->m_clientRect, preferredAxis );
+		DetermineDirection( direction, circlePos, circleSize, pParams->m_clientRect );
 
 		MoveInDirection( circlePos, direction );
 
