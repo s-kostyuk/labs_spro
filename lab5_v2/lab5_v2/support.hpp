@@ -24,7 +24,7 @@ inline bool HasZeroSize( const RECT & _r ) {
 }
 
 inline BOOL Ellipse( HDC _hdc, const RECT & _dimensions ) {
-	Ellipse( _hdc, _dimensions.left, _dimensions.top, _dimensions.right, _dimensions.bottom );
+	return Ellipse( _hdc, _dimensions.left, _dimensions.top, _dimensions.right, _dimensions.bottom );
 }
 
 /*****************************************************************************/
