@@ -132,6 +132,13 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam 
 
 		// Инициализируем барьер для одного (главного) потока
 		InitializeSynchronizationBarrier( pDrawFinished, 1, 1 );
+
+		semaphore = CreateSemaphore( NULL, 0, maxNOfThreads, _T( "Draw quota" ) );
+
+		if ( semaphore == NULL ) {
+			// FIXME: Тут должно быть какое-то более логичное действие
+			assert( !"Failed to create thread" );
+		}
 		break;
 
 	// Изменение размеров окна
@@ -143,9 +150,9 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam 
 
 	// Нажатие клавиши клавиатуры
 	case WM_KEYDOWN:
-		// Останавливаем все потоки для изменения симофора и барьера
-		for ( HANDLE & hThread : allThreads ) {
-			SuspendThread( hThread );
+		if ( maxNOfThreads < allThreads.size() ) {
+			// FIXME: Тут должно быть какое-то более логичное действие
+			assert( !"Too mush threads" );
 		}
 
 		// Создаем новый поток с перемещ. окружностью:
@@ -154,7 +161,7 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam 
 			0, // размер стека;
 			(LPTHREAD_START_ROUTINE)WalkCircleThread, //указатель на функцию;
 			&params, // передаваемые параметры;
-			CREATE_SUSPENDED, // создаем приостановленный поток
+			0, // создаем приостановленный поток
 			&threadID // указатель на переменную, в которой сохранится ID потока.
 		);
 
@@ -171,21 +178,16 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam 
 		InitializeSynchronizationBarrier( pDrawFinished, allThreads.size() + 1, 1 );
 
 		// Генерируем новый семафор
-		CloseHandle( semaphore );
-		semaphore = CreateSemaphore( NULL, 0, allThreads.size(), _T( "Draw quota" ) );
+		//CloseHandle( semaphore );
+		//semaphore = CreateSemaphore( NULL, 0, allThreads.size(), _T( "Draw quota" ) );
 
 		if ( semaphore == NULL ) {
 			// FIXME: Тут должно быть какое-то более логичное действие
 			assert( !"Failed to create thread" );
 		}
 
-		// Запускаем все потоки
-		for ( HANDLE & hThread : allThreads ) {
-			ResumeThread( hThread );
-		}
-
 		// Запускаем перерисовку
-		UpdateWindow( hWnd );
+		InvalidateRect( hWnd, NULL, TRUE );
 		break;
 
 	// Перерисовать окно

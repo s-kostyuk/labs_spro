@@ -84,7 +84,7 @@ void WalkCircleThread( PVOID _pvoid ) {
 
 	direction = (Direction)( rand() % (int)Direction::N_OF_DIRECTIONS );
 
-	// Проверяем на необходимосты выхода из потока
+	// Проверяем на необходимость выхода из потока
 	while ( ! pParams->m_bKill )
 	{
 		// Определяем направление движения окружности
@@ -92,10 +92,6 @@ void WalkCircleThread( PVOID _pvoid ) {
 
 		// Определяем след. позицию окружности
 		MoveInDirection( circleDims, direction, step );
-
-		// Если поток завершают...
-		if ( pParams->m_bKill )
-			break; // ...выходим из цикла без попытки блокировки
 
 		// Получаем свою квоту на перерисовку
 		WaitForSingleObject( pParams->m_semaphore, INFINITE );
