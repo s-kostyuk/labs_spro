@@ -17,6 +17,15 @@ typedef struct
 }
 PARAMS, *PPARAMS;
 
+typedef struct 
+{
+	HWND m_hWnd; // Описатель родитеслького окна
+	BOOL m_bKill; // завершить ли поток
+}
+INVALIDATORPAR, *PINVALIDATORPAR;
+
+void Invalidator( PVOID _pvoid );
+
 void AlertThreadCreatureFail();
 
 void AlertSemaphoreCreatureFail();

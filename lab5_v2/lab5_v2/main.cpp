@@ -116,6 +116,8 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam 
 	INT & maxNOfWorkers = params.m_maxNOfWorkers;
 	HANDLE & evSemAvailable = params.m_semAvailable;
 
+	static INVALIDATORPAR invParams;
+
 	static bool growNeeded;
 
 	static std::vector< HANDLE > workers;
@@ -146,6 +148,23 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam 
 
 		// Разрешаем доступ к семафору
 		evSemAvailable = CreateEvent( NULL, TRUE, TRUE, _T( "Semaphore available" ) );
+		
+		// Запускаем процесс обновления содержимого
+		invParams.m_hWnd = hWnd;
+		invParams.m_bKill = false;
+
+		tempThread = CreateThread(
+			NULL, // параметры безопасности;
+			0, // размер стека;
+			(LPTHREAD_START_ROUTINE)Invalidator, //указатель на функцию;
+			&invParams, // передаваемые параметры;
+			0, // создаем приостановленный поток
+			&threadID // указатель на переменную, в которой сохранится ID потока.
+		);
+
+		// Если создание потока было не удачным - ругаемся
+		if ( tempThread == NULL )
+			AlertThreadCreatureFail();
 
 		break;
 
@@ -180,16 +199,7 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam 
 		// Если к-во потоков приближается к максимальному...
 		if ( ( maxNOfWorkers - 2 ) < workers.size() ) {
 			// ...увеличим макс. число семофора
-			growNeeded = true;
-			
-
-
-			// ...создаем новый барьер с увеличенным счетчиком...
-			//InitializeSynchronizationBarrier( pDrawFinished, workers.size() + 2, 1 );
-		}
-		else {
-			// Иначе создаем барьер с обычным счетчиком
-			//InitializeSynchronizationBarrier( pDrawFinished, workers.size() + 1, 1 );
+			growNeeded = true;	
 		}
 
 		InitializeSynchronizationBarrier( pDrawFinished, workers.size() + 1, 1 );
@@ -231,6 +241,7 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam 
 	case WM_DESTROY: 
 		// Завершаем потоки
 		params.m_bKill = true;
+		invParams.m_bKill = true;
 
 		// Удаляем критическую секцию
 		DeleteCriticalSection( pDrawBlocker );

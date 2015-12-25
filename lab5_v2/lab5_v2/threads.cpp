@@ -6,6 +6,16 @@
 #include <cassert>
 #include <Tchar.h>
 
+void Invalidator( PVOID _pvoid ) {
+	PINVALIDATORPAR pParams = (PINVALIDATORPAR)_pvoid;
+	
+	while ( ! pParams->m_bKill ) {
+		InvalidateRect( pParams->m_hWnd, NULL, TRUE );
+
+		Sleep( 50 );
+	}
+}
+
 void AlertThreadCreatureFail() {
 	// FIXME: Тут должно быть какое-то более логичное действие
 	assert( !"Failed to create thread" );
@@ -21,7 +31,7 @@ void GrowSemaphore( PVOID _pvoid ) {
 	HANDLE newSemaphore;
 
 	// Генерируем новый семафор
-	newSemaphore = CreateSemaphore( NULL, pParams->m_maxNOfWorkers, pParams->m_maxNOfWorkers * 2, NULL );
+	newSemaphore = CreateSemaphore( NULL, 0, pParams->m_maxNOfWorkers * 2, NULL );
 
 	// Если создание семофора не удалось - ругаемся и выходим
 	if ( newSemaphore == NULL ) {
@@ -33,7 +43,7 @@ void GrowSemaphore( PVOID _pvoid ) {
 	EnterCriticalSection( &pParams->m_semBlocker );
 
 	// Блокируем доступ к семофору
-	//ResetEvent( pParams->m_semAvailable );
+	ResetEvent( pParams->m_semAvailable );
 
 	// Закрываем описатель старого семофора
 	CloseHandle( pParams->m_semaphore );
@@ -43,7 +53,7 @@ void GrowSemaphore( PVOID _pvoid ) {
 	pParams->m_maxNOfWorkers *= 2;
 
 	// Снимаем блокировку доступа к семофору
-	//SetEvent( pParams->m_semAvailable );
+	SetEvent( pParams->m_semAvailable );
 
 	LeaveCriticalSection( &pParams->m_semBlocker );
 }
