@@ -12,7 +12,7 @@ void Invalidator( PVOID _pvoid ) {
 	while ( ! pParams->m_bKill ) {
 		InvalidateRect( pParams->m_hWnd, NULL, TRUE );
 
-		Sleep( 50 );
+		Sleep( 20 );
 	}
 }
 
@@ -106,7 +106,7 @@ void MoveInDirection( RECT & _targetFigure, const Direction _direction, const IN
 }
 
 void WalkCircleThread( PVOID _pvoid ) {
-	srand( time( NULL ) );
+	//srand( time( NULL ) );
 
 	PPARAMS pParams = (PPARAMS)_pvoid;
 
@@ -116,9 +116,15 @@ void WalkCircleThread( PVOID _pvoid ) {
 
 	POINT startPoint;
 
+	std::srand( std::time( NULL ) );
+
+	Direction direction;
+
+	direction = (Direction)( ( std::rand() ) % (int)Direction::N_OF_DIRECTIONS );
+
 	startPoint = {
-		rand() % ( pParams->m_clientRect.right  - circleSize.cx ),
-		rand() % ( pParams->m_clientRect.bottom - circleSize.cy )
+		std::rand() % ( pParams->m_clientRect.right  - circleSize.cx ),
+		std::rand() % ( pParams->m_clientRect.bottom - circleSize.cy )
 	};
 
 	RECT circleDims = { 
@@ -129,10 +135,6 @@ void WalkCircleThread( PVOID _pvoid ) {
 	}; // left top right bottom
 
 	const UINT step = 1;
-
-	Direction direction;
-
-	direction = (Direction)( rand() % (int)Direction::N_OF_DIRECTIONS );
 
 	// Проверяем на необходимость выхода из потока
 	while ( ! pParams->m_bKill )

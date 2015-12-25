@@ -131,7 +131,7 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam 
 		maxNOfWorkers = 5;
 
 		// Делаем посев случайных значений
-		srand( time( NULL ) );
+		//srand( time( NULL ) );
 
 		// Инициализируем критическую секцию
 		InitializeCriticalSection( pDrawBlocker );
