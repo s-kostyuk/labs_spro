@@ -1,6 +1,6 @@
 ﻿#include "main.hpp"
 
-#include "walking_circles.hpp"
+#include "threads.hpp"
 
 #include <Tchar.h>
 #include <cassert>
@@ -22,7 +22,6 @@ int APIENTRY WinMain( HINSTANCE hInstance,
 	int       nShowCmd )
 {
 	MSG msg;
-
 
 	// Регистрация класса окна 
 	MyRegisterClass( hInstance );
@@ -106,39 +105,48 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam 
 	PAINTSTRUCT ps;
 	
 	static DWORD threadID;
-	static INT nOfThreads;
-
-	const INT maxNOfThreads = 100;
+	static INT nOfWorkers;
 
 	static PARAMS params; // Параметры, передаваемые в поток
 	RECT & clientRect = params.m_clientRect; // Размер клиентской области
 	HDC & hdc = params.m_hdc; // Описатель констекста устройства вывода
-	LPCRITICAL_SECTION pDrawBlocker = &params.m_drawBlocker; // Критическая секция, блокировка вывода в контекст
 	LPSYNCHRONIZATION_BARRIER pDrawFinished = &params.m_drawFinished; // Барьер синхронизации, ожидание окончания вывода
-	HANDLE & semaphore = params.m_semaphore; // квота на отрисовки
+	LPCRITICAL_SECTION pDrawBlocker = &params.m_drawBlocker;
+	HANDLE & semDrawQuota = params.m_semaphore; // квота на отрисовки
+	INT & maxNOfWorkers = params.m_maxNOfWorkers;
+	HANDLE & evSemAvailable = params.m_semAvailable;
 
-	static std::vector< HANDLE > allThreads;
+	static bool growNeeded;
+
+	static std::vector< HANDLE > workers;
 	HANDLE tempThread;
 
 	switch ( message )
 	{
 	// Сообщение приходит при создании окна
 	case WM_CREATE:
+		// Устанавливаем максимальное к-во рабочих процессов
+		maxNOfWorkers = 5;
+
 		// Делаем посев случайных значений
 		srand( time( NULL ) );
 
 		// Инициализируем критическую секцию
 		InitializeCriticalSection( pDrawBlocker );
+		InitializeCriticalSection( &params.m_semBlocker );
 
 		// Инициализируем барьер для одного (главного) потока
 		InitializeSynchronizationBarrier( pDrawFinished, 1, 1 );
 
-		semaphore = CreateSemaphore( NULL, 0, maxNOfThreads, _T( "Draw quota" ) );
+		// Создаем квоту на к-во отрисовок
+		semDrawQuota = CreateSemaphore( NULL, 0, maxNOfWorkers, NULL );
 
-		if ( semaphore == NULL ) {
-			// FIXME: Тут должно быть какое-то более логичное действие
-			assert( !"Failed to create thread" );
-		}
+		if ( semDrawQuota == NULL )
+			AlertSemaphoreCreatureFail();
+
+		// Разрешаем доступ к семафору
+		evSemAvailable = CreateEvent( NULL, TRUE, TRUE, _T( "Semaphore available" ) );
+
 		break;
 
 	// Изменение размеров окна
@@ -150,12 +158,7 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam 
 
 	// Нажатие клавиши клавиатуры
 	case WM_KEYDOWN:
-		if ( maxNOfThreads < allThreads.size() ) {
-			// FIXME: Тут должно быть какое-то более логичное действие
-			assert( !"Too mush threads" );
-		}
-
-		// Создаем новый поток с перемещ. окружностью:
+		// Создаем рабочий поток, перемещающий окружность по окну:
 		tempThread = CreateThread(
 			NULL, // параметры безопасности;
 			0, // размер стека;
@@ -165,26 +168,31 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam 
 			&threadID // указатель на переменную, в которой сохранится ID потока.
 		);
 
-		if ( tempThread == NULL ) {
-			// FIXME: Тут должно быть какое-то более логичное действие
-			assert( !"Failed to create thread" );
+		// Если создание потока было не удачным - ругаемся
+		if ( tempThread == NULL ) 
+			AlertThreadCreatureFail();
+		else 
+			workers.push_back( tempThread );
+
+		// Удаялем старый барьер
+		DeleteSynchronizationBarrier( pDrawFinished );
+
+		// Если к-во потоков приближается к максимальному...
+		if ( ( maxNOfWorkers - 2 ) < workers.size() ) {
+			// ...увеличим макс. число семофора
+			growNeeded = true;
+			
+
+
+			// ...создаем новый барьер с увеличенным счетчиком...
+			//InitializeSynchronizationBarrier( pDrawFinished, workers.size() + 2, 1 );
 		}
 		else {
-			allThreads.push_back( tempThread );
+			// Иначе создаем барьер с обычным счетчиком
+			//InitializeSynchronizationBarrier( pDrawFinished, workers.size() + 1, 1 );
 		}
 
-		// Генерируем новые барьеры
-		DeleteSynchronizationBarrier( pDrawFinished );
-		InitializeSynchronizationBarrier( pDrawFinished, allThreads.size() + 1, 1 );
-
-		// Генерируем новый семафор
-		//CloseHandle( semaphore );
-		//semaphore = CreateSemaphore( NULL, 0, allThreads.size(), _T( "Draw quota" ) );
-
-		if ( semaphore == NULL ) {
-			// FIXME: Тут должно быть какое-то более логичное действие
-			assert( !"Failed to create thread" );
-		}
+		InitializeSynchronizationBarrier( pDrawFinished, workers.size() + 1, 1 );
 
 		// Запускаем перерисовку
 		InvalidateRect( hWnd, NULL, TRUE );
@@ -195,10 +203,24 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam 
 		// Получаем описатель контекста
 		hdc = BeginPaint( hWnd, &ps );
 
-		ReleaseSemaphore( semaphore, allThreads.size(), NULL );
+		// Разрешаем рисовать
+		ReleaseSemaphore( semDrawQuota, workers.size(), NULL );
+
+		if ( growNeeded ) {
+			tempThread = CreateThread( NULL, 0, (LPTHREAD_START_ROUTINE)GrowSemaphore, &params, 0, &threadID );
+
+			// Если создание потока было не удачным - ругаемся
+			if ( tempThread == NULL )
+				AlertThreadCreatureFail();
+
+			WaitForSingleObject( tempThread, INFINITE );
+
+			growNeeded = false;
+		}
 
 		// Ждем, пока все потоки закончат отрисовку
-		EnterSynchronizationBarrier( pDrawFinished, NULL );
+		EnterSynchronizationBarrier( pDrawFinished,
+			SYNCHRONIZATION_BARRIER_FLAGS_BLOCK_ONLY );
 
 		// Закрываем контекст
 		EndPaint( hWnd, &ps );
@@ -212,17 +234,20 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam 
 
 		// Удаляем критическую секцию
 		DeleteCriticalSection( pDrawBlocker );
+		DeleteCriticalSection( &params.m_semBlocker );
+
+		// Запрещаем доступ к семафору
+		CloseHandle( evSemAvailable );
 
 		// Закрываем семафор
-		CloseHandle( semaphore );
+		CloseHandle( semDrawQuota );
 
 		// Удаляем барьер
 		DeleteSynchronizationBarrier( pDrawFinished );
 
 		// Закрываем описатели потоков
-		for ( HANDLE & hThread : allThreads ) {
+		for ( HANDLE & hThread : workers )
 			CloseHandle( hThread );
-		}
 
 		// Оставляем сообщение внешнему миру
 		PostQuitMessage( 0 );

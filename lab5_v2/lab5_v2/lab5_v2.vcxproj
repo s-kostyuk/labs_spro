@@ -120,12 +120,12 @@
   <ItemGroup>
     <ClCompile Include="main.cpp" />
     <ClCompile Include="support.cpp" />
-    <ClCompile Include="walking_circles.cpp" />
+    <ClCompile Include="threads.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="main.hpp" />
     <ClInclude Include="support.hpp" />
-    <ClInclude Include="walking_circles.hpp" />
+    <ClInclude Include="threads.hpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

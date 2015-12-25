@@ -1,19 +1,60 @@
-﻿#include "walking_circles.hpp"
+﻿#include "threads.hpp"
 #include "support.hpp"
 
 #include <cstdlib>
 #include <ctime>
 #include <cassert>
+#include <Tchar.h>
+
+void AlertThreadCreatureFail() {
+	// FIXME: Тут должно быть какое-то более логичное действие
+	assert( !"Failed to create thread" );
+}
+
+void AlertSemaphoreCreatureFail() {
+	// FIXME: Тут должно быть какое-то более логичное действие
+	assert( !"Failed to create semaphore" );
+}
+
+void GrowSemaphore( PVOID _pvoid ) {
+	PPARAMS pParams = (PPARAMS)_pvoid;
+	HANDLE newSemaphore;
+
+	// Генерируем новый семафор
+	newSemaphore = CreateSemaphore( NULL, pParams->m_maxNOfWorkers, pParams->m_maxNOfWorkers * 2, NULL );
+
+	// Если создание семофора не удалось - ругаемся и выходим
+	if ( newSemaphore == NULL ) {
+		AlertSemaphoreCreatureFail();
+
+		return;
+	}
+
+	EnterCriticalSection( &pParams->m_semBlocker );
+
+	// Блокируем доступ к семофору
+	//ResetEvent( pParams->m_semAvailable );
+
+	// Закрываем описатель старого семофора
+	CloseHandle( pParams->m_semaphore );
+
+	// Сохраняем новые параметры
+	pParams->m_semaphore = newSemaphore;
+	pParams->m_maxNOfWorkers *= 2;
+
+	// Снимаем блокировку доступа к семофору
+	//SetEvent( pParams->m_semAvailable );
+
+	LeaveCriticalSection( &pParams->m_semBlocker );
+}
 
 enum class Direction {
 	DONT_MOVE = -1, LEFT, RIGHT, UP, DOWN, N_OF_DIRECTIONS
 };
 
-Direction GetRandDirection() {
-	return  (Direction)( rand() % (int)Direction::N_OF_DIRECTIONS );
+inline Direction GetRandDirection() {
+	return (Direction)( rand() % (int)Direction::N_OF_DIRECTIONS );
 }
-
-//PVOID pvoid
 
 void DetermineDirection( Direction & _targetDir, const RECT & _figureRect, const RECT & _clientRect ) {
 	if ( _figureRect.left < _clientRect.left )
@@ -54,7 +95,6 @@ void MoveInDirection( RECT & _targetFigure, const Direction _direction, const IN
 	}
 }
 
-//void WalkCircle( HWND _hWnd, const POINT _startPoint, const RECT & _clientRect ) {
 void WalkCircleThread( PVOID _pvoid ) {
 	srand( time( NULL ) );
 
@@ -93,8 +133,15 @@ void WalkCircleThread( PVOID _pvoid ) {
 		// Определяем след. позицию окружности
 		MoveInDirection( circleDims, direction, step );
 
+		// Ждем доступа к семофору
+		WaitForSingleObject( pParams->m_semAvailable, INFINITE );
+
+		EnterCriticalSection( &pParams->m_semBlocker );
+
 		// Получаем свою квоту на перерисовку
 		WaitForSingleObject( pParams->m_semaphore, INFINITE );
+
+		LeaveCriticalSection( &pParams->m_semBlocker );
 
 		// Блокируем отрисовку в других потоках
 		EnterCriticalSection( &pParams->m_drawBlocker );
@@ -106,6 +153,7 @@ void WalkCircleThread( PVOID _pvoid ) {
 		LeaveCriticalSection( &pParams->m_drawBlocker );
 
 		// Ожидаем завершения отрисовки во всех остальных потоках
-		EnterSynchronizationBarrier( &pParams->m_drawFinished, NULL );
+		EnterSynchronizationBarrier( &pParams->m_drawFinished,
+			SYNCHRONIZATION_BARRIER_FLAGS_BLOCK_ONLY );
 	}
 }
