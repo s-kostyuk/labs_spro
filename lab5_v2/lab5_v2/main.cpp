@@ -14,8 +14,6 @@ LPCTSTR szWindowClass = _T( "Kostyuk" );
 LPCTSTR szTitle = _T( "lab5: multithreading" );
 const SIZE wndDefaultSize{ 600, 400 };
 
-RECT clientRect;
-
 // Основная программа 
 int APIENTRY WinMain( HINSTANCE hInstance,
 	HINSTANCE hPrevInstance,
@@ -90,7 +88,7 @@ BOOL InitInstance( HINSTANCE hInstance, int nCmdShow )
 		NULL,       // описатель меню окна
 		hInstance,  // указатель приложения
 		NULL // параметры создания.
-		);
+	);
 
 	if ( !hWnd ) // Если окно не создалось, функция возвращает FALSE
 		return FALSE;
@@ -105,69 +103,102 @@ BOOL InitInstance( HINSTANCE hInstance, int nCmdShow )
 LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam )
 {
 	PAINTSTRUCT ps;
-	HDC hdc;
-	static PARAMS params = { hWnd, NULL, NULL, false };
+	
 	static DWORD threadID;
+	static INT nOfThreads;
+
+	const INT maxNOfThreads = 100;
+
+	static PARAMS params; // Параметры, передаваемые в поток
+	RECT & clientRect = params.m_clientRect; // Размер клиентской области
+	HDC & hdc = params.m_hdc; // Описатель констекста устройства вывода
+	LPCRITICAL_SECTION pDrawBlocker = &params.m_drawBlocker; // Критическая секция, блокировка вывода в контекст
+	LPSYNCHRONIZATION_BARRIER pDrawFinished = &params.m_drawFinished; // Барьер синхронизации, ожидание окончания вывода
+	HANDLE & semaphore = params.m_semaphore; // квота на отрисовки
 
 	switch ( message )
 	{
-		// Сообщение приходит при создании окна
+	// Сообщение приходит при создании окна
 	case WM_CREATE:
+		// Делаем посев случайных значений
 		srand( time( NULL ) );
+
+		// Инициализируем критическую секцию
+		InitializeCriticalSection( pDrawBlocker );
+
+		// Блокируем рисование
+		semaphore = CreateSemaphore( NULL, 0, 10000, _T( "Draw quota" ) );
+
 		break;
 
-		// Изменение размеров окна
+	// Изменение размеров окна
 	case WM_SIZE:
+		// Пересчитываем размер клиентской области
 		clientRect.right  = LOWORD( lParam );
 		clientRect.bottom = HIWORD( lParam );
-
-		params.m_clientRect = clientRect;
 		break;
 
-		/*
-	case WM_LBUTTONUP:
-		
-
-		params.m_startPoint.x = GET_X_LPARAM( lParam );
-		params.m_startPoint.y = GET_Y_LPARAM( lParam );
-
-		CreateThread(
-			NULL, // параметры безопасности
-			0, // размер стека
-			(LPTHREAD_START_ROUTINE)WalkCircleThread, //указатель на функцию,
-			&params, // передаваемые параметры
-			0, &threadID
-			);
-		break;
-		*/
-
+	// Нажатие клавиши клавиатуры
 	case WM_KEYDOWN:
-		params.m_startPoint.x = rand() % ( params.m_clientRect.right  - 40 );
-		params.m_startPoint.y = rand() % ( params.m_clientRect.bottom - 40 );
-
+		// Создаем новый поток с перемещ. окружностью:
 		CreateThread(
-			NULL, // параметры безопасности
-			0, // размер стека
-			(LPTHREAD_START_ROUTINE)WalkCircleThread, //указатель на функцию,
-			&params, // передаваемые параметры
-			0, &threadID
+			NULL, // параметры безопасности;
+			0, // размер стека;
+			(LPTHREAD_START_ROUTINE)WalkCircleThread, //указатель на функцию;
+			&params, // передаваемые параметры;
+			0, &threadID // FIXME:
 		);
 
-		// Перерисовать окно
-		
-	case WM_PAINT:
-		// Начать графический вывод
-		//hdc = BeginPaint( hWnd, &ps );
+		// Уваеличиваем счетчик запущеных потоков
+		++nOfThreads;
 
-		// Закончить графический вывод
-		//EndPaint( hWnd, &ps );
-
-		ValidateRect( hWnd, NULL );
+		// Запускаем перерисовку
+		//InvalidateRect( hWnd, NULL, TRUE );
+		UpdateWindow( hWnd );
 		break;
-		
 
-	case WM_DESTROY: // Завершение работы
+	// Перерисовать окно
+	case WM_PAINT:
+		// Получаем описатель контекста
+		hdc = BeginPaint( hWnd, &ps );
+
+		// Инициализируем барьер синхронизации
+		InitializeSynchronizationBarrier( pDrawFinished, nOfThreads + 1, 1 );
+
+		ReleaseSemaphore( semaphore, nOfThreads, NULL );
+
+		// Закрываем старый семофор
+		//CloseHandle( semaphore );
+
+		// Инициализируем квоту отрисовок
+		//semaphore = CreateSemaphore( NULL, nOfThreads, nOfThreads + 1, _T("Draw quota") );
+
+		// Покидаем критическую секцию и разрешаем рисование потокам
+		//LeaveCriticalSection( pDrawBlocker );
+
+		// Ждем, пока все потоки закончат отрисовку
+		EnterSynchronizationBarrier( pDrawFinished, NULL );
+
+		// Входим в критическую секцию, запрещаем отрисовку другим потокам
+		//EnterCriticalSection( pDrawBlocker );
+
+		// Удаляем барьер синхронизации
+		DeleteSynchronizationBarrier( pDrawFinished );
+
+		// Закрываем контекст
+		EndPaint( hWnd, &ps );
+
+		break;
+
+	// Завершение работы
+	case WM_DESTROY: 
+		// Завершаем потоки
 		params.m_bKill = true;
+
+		// Удаляем критическую секцию
+		DeleteCriticalSection( pDrawBlocker );
+
+		// Оставляем сообщение внешнему миру
 		PostQuitMessage( 0 );
 		break;
 

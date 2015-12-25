@@ -64,11 +64,18 @@ void WalkCircleThread( PVOID _pvoid ) {
 
 	HDC hdc;
 
+	POINT startPoint;
+
+	startPoint = {
+		rand() % ( pParams->m_clientRect.right  - circleSize.cx ),
+		rand() % ( pParams->m_clientRect.bottom - circleSize.cy )
+	};
+
 	RECT circleDims = { 
-		pParams->m_startPoint.x, 
-		pParams->m_startPoint.y, 
-		pParams->m_startPoint.x + circleSize.cx, 
-		pParams->m_startPoint.y + circleSize.cy 
+		startPoint.x,
+		startPoint.y,
+		startPoint.x + circleSize.cx,
+		startPoint.y + circleSize.cy
 	}; // left top right bottom
 
 	const UINT step = 1;
@@ -77,18 +84,32 @@ void WalkCircleThread( PVOID _pvoid ) {
 
 	direction = (Direction)( rand() % (int)Direction::N_OF_DIRECTIONS );
 
+	// Проверяем на необходимосты выхода из потока
 	while ( ! pParams->m_bKill )
 	{
+		// Определяем направление движения окружности
 		DetermineDirection( direction, circleDims, pParams->m_clientRect );
 
+		// Определяем след. позицию окружности
 		MoveInDirection( circleDims, direction, step );
 
-		hdc = GetDC( pParams->m_hWnd );
+		// Если поток завершают...
+		if ( pParams->m_bKill )
+			break; // ...выходим из цикла без попытки блокировки
 
-		Ellipse( hdc, circleDims );
+		// Получаем свою квоту на перерисовку
+		WaitForSingleObject( pParams->m_semaphore, INFINITE );
 
-		ReleaseDC( pParams->m_hWnd, hdc );
+		// Блокируем отрисовку в других потоках
+		EnterCriticalSection( &pParams->m_drawBlocker );
 
-		Sleep( 10 );
+		// Рисуем окружность
+		Ellipse( pParams->m_hdc, circleDims );
+
+		// Снимаем блокировку
+		LeaveCriticalSection( &pParams->m_drawBlocker );
+
+		// Ожидаем завершения отрисовки во всех остальных потоках
+		EnterSynchronizationBarrier( &pParams->m_drawFinished, NULL );
 	}
 }
