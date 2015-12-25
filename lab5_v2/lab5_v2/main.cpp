@@ -7,6 +7,7 @@
 #include <windowsx.h>
 #include <cstdlib>
 #include <ctime>
+#include <vector>
 
 // Глобальные переменные:
 HINSTANCE hInst; 	// Указатель приложения
@@ -116,6 +117,9 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam 
 	LPSYNCHRONIZATION_BARRIER pDrawFinished = &params.m_drawFinished; // Барьер синхронизации, ожидание окончания вывода
 	HANDLE & semaphore = params.m_semaphore; // квота на отрисовки
 
+	static std::vector< HANDLE > allThreads;
+	HANDLE tempThread;
+
 	switch ( message )
 	{
 	// Сообщение приходит при создании окна
@@ -126,9 +130,8 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam 
 		// Инициализируем критическую секцию
 		InitializeCriticalSection( pDrawBlocker );
 
-		// Блокируем рисование
-		semaphore = CreateSemaphore( NULL, 0, 10000, _T( "Draw quota" ) );
-
+		// Инициализируем барьер для одного (главного) потока
+		InitializeSynchronizationBarrier( pDrawFinished, 1, 1 );
 		break;
 
 	// Изменение размеров окна
@@ -140,20 +143,48 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam 
 
 	// Нажатие клавиши клавиатуры
 	case WM_KEYDOWN:
+		// Останавливаем все потоки для изменения симофора и барьера
+		for ( HANDLE & hThread : allThreads ) {
+			SuspendThread( hThread );
+		}
+
 		// Создаем новый поток с перемещ. окружностью:
-		CreateThread(
+		tempThread = CreateThread(
 			NULL, // параметры безопасности;
 			0, // размер стека;
 			(LPTHREAD_START_ROUTINE)WalkCircleThread, //указатель на функцию;
 			&params, // передаваемые параметры;
-			0, &threadID // FIXME:
+			CREATE_SUSPENDED, // создаем приостановленный поток
+			&threadID // указатель на переменную, в которой сохранится ID потока.
 		);
 
-		// Уваеличиваем счетчик запущеных потоков
-		++nOfThreads;
+		if ( tempThread == NULL ) {
+			// FIXME: Тут должно быть какое-то более логичное действие
+			assert( !"Failed to create thread" );
+		}
+		else {
+			allThreads.push_back( tempThread );
+		}
+
+		// Генерируем новые барьеры
+		DeleteSynchronizationBarrier( pDrawFinished );
+		InitializeSynchronizationBarrier( pDrawFinished, allThreads.size() + 1, 1 );
+
+		// Генерируем новый семафор
+		CloseHandle( semaphore );
+		semaphore = CreateSemaphore( NULL, 0, allThreads.size(), _T( "Draw quota" ) );
+
+		if ( semaphore == NULL ) {
+			// FIXME: Тут должно быть какое-то более логичное действие
+			assert( !"Failed to create thread" );
+		}
+
+		// Запускаем все потоки
+		for ( HANDLE & hThread : allThreads ) {
+			ResumeThread( hThread );
+		}
 
 		// Запускаем перерисовку
-		//InvalidateRect( hWnd, NULL, TRUE );
 		UpdateWindow( hWnd );
 		break;
 
@@ -162,28 +193,10 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam 
 		// Получаем описатель контекста
 		hdc = BeginPaint( hWnd, &ps );
 
-		// Инициализируем барьер синхронизации
-		InitializeSynchronizationBarrier( pDrawFinished, nOfThreads + 1, 1 );
-
-		ReleaseSemaphore( semaphore, nOfThreads, NULL );
-
-		// Закрываем старый семофор
-		//CloseHandle( semaphore );
-
-		// Инициализируем квоту отрисовок
-		//semaphore = CreateSemaphore( NULL, nOfThreads, nOfThreads + 1, _T("Draw quota") );
-
-		// Покидаем критическую секцию и разрешаем рисование потокам
-		//LeaveCriticalSection( pDrawBlocker );
+		ReleaseSemaphore( semaphore, allThreads.size(), NULL );
 
 		// Ждем, пока все потоки закончат отрисовку
 		EnterSynchronizationBarrier( pDrawFinished, NULL );
-
-		// Входим в критическую секцию, запрещаем отрисовку другим потокам
-		//EnterCriticalSection( pDrawBlocker );
-
-		// Удаляем барьер синхронизации
-		DeleteSynchronizationBarrier( pDrawFinished );
 
 		// Закрываем контекст
 		EndPaint( hWnd, &ps );
@@ -197,6 +210,17 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam 
 
 		// Удаляем критическую секцию
 		DeleteCriticalSection( pDrawBlocker );
+
+		// Закрываем семафор
+		CloseHandle( semaphore );
+
+		// Удаляем барьер
+		DeleteSynchronizationBarrier( pDrawFinished );
+
+		// Закрываем описатели потоков
+		for ( HANDLE & hThread : allThreads ) {
+			CloseHandle( hThread );
+		}
 
 		// Оставляем сообщение внешнему миру
 		PostQuitMessage( 0 );
