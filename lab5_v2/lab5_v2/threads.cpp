@@ -46,10 +46,13 @@ void GrowSemaphore( PVOID _pvoid ) {
 		return;
 	}
 
-	EnterCriticalSection( &pParams->m_semBlocker );
+	EnterSynchronizationBarrier( &pParams->m_drawFinished,
+		SYNCHRONIZATION_BARRIER_FLAGS_BLOCK_ONLY );
+
+	//EnterCriticalSection( &pParams->m_semBlocker );
 
 	// Блокируем доступ к семафору
-	ResetEvent( pParams->m_semAvailable );
+	//ResetEvent( pParams->m_semAvailable );
 
 	// Закрываем описатель старого семафора
 	CloseHandle( pParams->m_semaphore );
@@ -59,9 +62,12 @@ void GrowSemaphore( PVOID _pvoid ) {
 	pParams->m_maxNOfWorkers *= 2;
 
 	// Снимаем блокировку доступа к семафору
-	SetEvent( pParams->m_semAvailable );
+	//SetEvent( pParams->m_semAvailable );
 
-	LeaveCriticalSection( &pParams->m_semBlocker );
+	//LeaveCriticalSection( &pParams->m_semBlocker );
+
+	EnterSynchronizationBarrier( &pParams->m_drawFinished,
+		SYNCHRONIZATION_BARRIER_FLAGS_BLOCK_ONLY );
 }
 
 /*****************************************************************************/
@@ -153,15 +159,8 @@ void WalkCircleThread( PVOID _pvoid ) {
 		// Определяем след. позицию окружности
 		MoveInDirection( circleDims, direction, step );
 
-		// Ждем доступа к семафору
-		WaitForSingleObject( pParams->m_semAvailable, INFINITE );
-
-		EnterCriticalSection( &pParams->m_semBlocker );
-
 		// Получаем свою квоту на перерисовку
 		WaitForSingleObject( pParams->m_semaphore, INFINITE );
-
-		LeaveCriticalSection( &pParams->m_semBlocker );
 
 		// Блокируем отрисовку в других потоках
 		EnterCriticalSection( &pParams->m_drawBlocker );
@@ -173,6 +172,10 @@ void WalkCircleThread( PVOID _pvoid ) {
 		LeaveCriticalSection( &pParams->m_drawBlocker );
 
 		// Ожидаем завершения отрисовки во всех остальных потоках
+		EnterSynchronizationBarrier( &pParams->m_drawFinished,
+			SYNCHRONIZATION_BARRIER_FLAGS_BLOCK_ONLY );
+
+		// Даем возможность другому потоку подменить семафор
 		EnterSynchronizationBarrier( &pParams->m_drawFinished,
 			SYNCHRONIZATION_BARRIER_FLAGS_BLOCK_ONLY );
 	}

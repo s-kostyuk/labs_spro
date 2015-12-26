@@ -123,6 +123,7 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam 
 
 	static std::vector< HANDLE > workers;
 	HANDLE tempThread;
+	static HANDLE growerThread;
 
 	switch ( message )
 	{
@@ -131,12 +132,8 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam 
 		// Устанавливаем максимальное к-во рабочих процессов
 		maxNOfWorkers = 5;
 
-		// Делаем посев случайных значений
-		//srand( time( NULL ) );
-
 		// Инициализируем критическую секцию
 		InitializeCriticalSection( pDrawBlocker );
-		InitializeCriticalSection( &params.m_semBlocker );
 
 		// Инициализируем барьер для одного (главного) потока
 		InitializeSynchronizationBarrier( pDrawFinished, 1, 1 );
@@ -201,8 +198,15 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam 
 		if ( ( maxNOfWorkers - 2 ) < workers.size() ) {
 			// ...увеличим макс. число семафора
 			growNeeded = true;	
+
+			growerThread = CreateThread( NULL, 0, (LPTHREAD_START_ROUTINE)GrowSemaphore, &params, 0, &threadID );
+
+			// Если создание потока было не удачным - ругаемся
+			if ( growerThread == NULL )
+				AlertThreadCreatureFail();
 		}
 
+		// Создаем новый барьер
 		InitializeSynchronizationBarrier( pDrawFinished, workers.size() + 1, 1 );
 
 		// Запускаем перерисовку
@@ -217,21 +221,31 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam 
 		// Разрешаем рисовать
 		ReleaseSemaphore( semDrawQuota, workers.size(), NULL );
 
-		if ( growNeeded ) {
-			tempThread = CreateThread( NULL, 0, (LPTHREAD_START_ROUTINE)GrowSemaphore, &params, 0, &threadID );
+		// Ждем, пока все потоки закончат отрисовку
 
-			// Если создание потока было не удачным - ругаемся
-			if ( tempThread == NULL )
-				AlertThreadCreatureFail();
-
-			WaitForSingleObject( tempThread, INFINITE );
-
-			growNeeded = false;
+		// Если запущен growerThread, то он подождет вместо нас
+		if ( !growNeeded ) {
+			
+			EnterSynchronizationBarrier( pDrawFinished,
+				SYNCHRONIZATION_BARRIER_FLAGS_BLOCK_ONLY );
 		}
 
-		// Ждем, пока все потоки закончат отрисовку
-		EnterSynchronizationBarrier( pDrawFinished,
-			SYNCHRONIZATION_BARRIER_FLAGS_BLOCK_ONLY );
+		// Если нужно подменить семафор...
+		if ( growNeeded ) {
+			// ... ждем окончания подмены...
+			WaitForSingleObject( growerThread, INFINITE );
+
+			// ...закрываем описатель...
+			CloseHandle( growerThread );
+
+			// ...рост завершен
+			growNeeded = false;
+		}
+		else {
+			// Нет необходимости изменять семафор, преодолеваем второй барьер
+			EnterSynchronizationBarrier( pDrawFinished,
+				SYNCHRONIZATION_BARRIER_FLAGS_BLOCK_ONLY );
+		}
 
 		// Закрываем контекст
 		EndPaint( hWnd, &ps );
@@ -246,7 +260,6 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam 
 
 		// Удаляем критическую секцию
 		DeleteCriticalSection( pDrawBlocker );
-		DeleteCriticalSection( &params.m_semBlocker );
 
 		// Запрещаем доступ к семафору
 		CloseHandle( evSemAvailable );

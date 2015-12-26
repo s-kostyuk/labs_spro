@@ -17,7 +17,6 @@ typedef struct
 	HANDLE m_semAvailable; // Событие - семафор доступен
 	INT    m_maxNOfWorkers; // Максимальное к-во потоков, рисующих окружности
 	CRITICAL_SECTION m_drawBlocker; // Критическая секция, блокировка вывода в контекст
-	CRITICAL_SECTION m_semBlocker; // Блокировка изменений семафора
 	SYNCHRONIZATION_BARRIER m_drawFinished; // рисование окончено
 }
 PARAMS, *PPARAMS;
