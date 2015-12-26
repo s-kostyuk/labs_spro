@@ -14,7 +14,6 @@ typedef struct
 	RECT   m_clientRect; // размер клиентской области
 	BOOL   m_bKill; // завершить ли поток
 	HANDLE m_semaphore; // к-во доступных перерисовок
-	HANDLE m_semAvailable; // Событие - семафор доступен
 	INT    m_maxNOfWorkers; // Максимальное к-во потоков, рисующих окружности
 	CRITICAL_SECTION m_drawBlocker; // Критическая секция, блокировка вывода в контекст
 	SYNCHRONIZATION_BARRIER m_drawFinished; // рисование окончено

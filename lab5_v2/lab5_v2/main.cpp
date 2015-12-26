@@ -115,7 +115,6 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam 
 	LPCRITICAL_SECTION pDrawBlocker = &params.m_drawBlocker;
 	HANDLE & semDrawQuota = params.m_semaphore; // квота на отрисовки
 	INT & maxNOfWorkers = params.m_maxNOfWorkers;
-	HANDLE & evSemAvailable = params.m_semAvailable;
 
 	static INVALIDATORPAR invParams;
 
@@ -143,9 +142,6 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam 
 
 		if ( semDrawQuota == NULL )
 			AlertSemaphoreCreatureFail();
-
-		// Разрешаем доступ к семафору
-		evSemAvailable = CreateEvent( NULL, TRUE, TRUE, _T( "Semaphore available" ) );
 		
 		// Запускаем процесс обновления содержимого
 		invParams.m_hWnd = hWnd;
@@ -260,9 +256,6 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam 
 
 		// Удаляем критическую секцию
 		DeleteCriticalSection( pDrawBlocker );
-
-		// Запрещаем доступ к семафору
-		CloseHandle( evSemAvailable );
 
 		// Закрываем семафор
 		CloseHandle( semDrawQuota );

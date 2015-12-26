@@ -49,22 +49,12 @@ void GrowSemaphore( PVOID _pvoid ) {
 	EnterSynchronizationBarrier( &pParams->m_drawFinished,
 		SYNCHRONIZATION_BARRIER_FLAGS_BLOCK_ONLY );
 
-	//EnterCriticalSection( &pParams->m_semBlocker );
-
-	// Блокируем доступ к семафору
-	//ResetEvent( pParams->m_semAvailable );
-
 	// Закрываем описатель старого семафора
 	CloseHandle( pParams->m_semaphore );
 
 	// Сохраняем новые параметры
 	pParams->m_semaphore = newSemaphore;
 	pParams->m_maxNOfWorkers *= 2;
-
-	// Снимаем блокировку доступа к семафору
-	//SetEvent( pParams->m_semAvailable );
-
-	//LeaveCriticalSection( &pParams->m_semBlocker );
 
 	EnterSynchronizationBarrier( &pParams->m_drawFinished,
 		SYNCHRONIZATION_BARRIER_FLAGS_BLOCK_ONLY );
