@@ -15,39 +15,39 @@ Direction GetRandDirection() {
 
 //PVOID pvoid
 
-void DetermineDirection( Direction & _targetDir, const POINT & _currPoint, const SIZE & _figureSize, const RECT & _clientRect ) {
-	if ( _currPoint.x < _clientRect.left )
+void DetermineDirection( Direction & _targetDir, const RECT & _figureRect, const RECT & _clientRect ) {
+	if ( _figureRect.left < _clientRect.left )
 		_targetDir = Direction::RIGHT;
 
-	else if ( _currPoint.x + _figureSize.cx > _clientRect.right )
+	else if ( _figureRect.right > _clientRect.right )
 		_targetDir = Direction::LEFT;
 
-	else if ( _currPoint.y < _clientRect.top )
+	else if ( _figureRect.top < _clientRect.top )
 		_targetDir = Direction::DOWN;
 
-	else if ( _currPoint.y + _figureSize.cy > _clientRect.bottom )
+	else if ( _figureRect.bottom > _clientRect.bottom )
 		_targetDir = Direction::UP;
 
 	//else {} // Оставить неизменной
 }
 
-void MoveInDirection( POINT & _targetPos, const Direction _direction, const UINT _step = 1 ) {
+void MoveInDirection( RECT & _targetFigure, const Direction _direction, const INT _step = 1 ) {
 	switch ( _direction )
 	{
 	case Direction::LEFT:
-		_targetPos.x -= _step;
+		OffsetRect( &_targetFigure, -_step, 0 );
 		break;
 
 	case Direction::RIGHT:
-		_targetPos.x += _step;
+		OffsetRect( &_targetFigure, +_step, 0 );
 		break;
 
 	case Direction::UP:
-		_targetPos.y -= _step;
+		OffsetRect( &_targetFigure, 0, -_step );
 		break;
 
 	case Direction::DOWN:
-		_targetPos.y += _step;
+		OffsetRect( &_targetFigure, 0, +_step );
 
 	default:
 		break;
@@ -66,30 +66,30 @@ void WalkCircleThread( PVOID _pvoid ) {
 
 	HDC hdc;
 
+	RECT circleDims = { 
+		pParams->m_startPoint.x, 
+		pParams->m_startPoint.y, 
+		pParams->m_startPoint.x + circleSize.cx, 
+		pParams->m_startPoint.y + circleSize.cy 
+	}; // left top right bottom
+
 	const UINT step = 1;
 
 	Direction direction;
-	POINT circlePos = pParams->m_startPoint;
 
 	direction = (Direction)( rand() % (int)Direction::N_OF_DIRECTIONS );
 
-	RECT ellipseRect = { circlePos.x, circlePos.y, circlePos.x + circleSize.cx, circlePos.y + circleSize.cy };
-
 	while ( ! pParams->m_bKill )
 	{
-		DetermineDirection( direction, circlePos, circleSize, pParams->m_clientRect );
+		InvalidateRect( pParams->m_hWnd, &circleDims, TRUE );
 
-		MoveInDirection( circlePos, direction );
+		DetermineDirection( direction, circleDims, pParams->m_clientRect );
 
-		
-
-		InvalidateRect( pParams->m_hWnd, &ellipseRect, TRUE );
-
-		ellipseRect = { circlePos.x, circlePos.y, circlePos.x + circleSize.cx, circlePos.y + circleSize.cy };
+		MoveInDirection( circleDims, direction, step );
 
 		hdc = BeginPaint( pParams->m_hWnd, &ps );
 
-		Ellipse( hdc, ellipseRect );
+		Ellipse( hdc, circleDims );
 
 		EndPaint( pParams->m_hWnd, &ps );
 
