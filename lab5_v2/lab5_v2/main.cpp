@@ -1,19 +1,14 @@
 ﻿#include "main.hpp"
 
-#include "threads.hpp"
-
-#include <Tchar.h>
-#include <cassert>
-#include <windowsx.h>
-#include <cstdlib>
-#include <ctime>
-#include <vector>
+/*****************************************************************************/
 
 // Глобальные переменные:
 HINSTANCE hInst; 	// Указатель приложения
 LPCTSTR szWindowClass = _T( "Kostyuk" );
 LPCTSTR szTitle = _T( "lab5: multithreading" );
 const SIZE wndDefaultSize{ 600, 400 };
+
+/*****************************************************************************/
 
 // Основная программа 
 int APIENTRY WinMain( HINSTANCE hInstance,
@@ -40,6 +35,8 @@ int APIENTRY WinMain( HINSTANCE hInstance,
 	return (int)msg.wParam;
 }
 
+/*****************************************************************************/
+
 //  FUNCTION: MyRegisterClass()
 //  Регистрирует класс окна 
 ATOM MyRegisterClass( HINSTANCE hInstance )
@@ -60,6 +57,8 @@ ATOM MyRegisterClass( HINSTANCE hInstance )
 
 	return RegisterClassEx( &wcex ); // регистрация класса окна
 }
+
+/*****************************************************************************/
 
 // FUNCTION: InitInstance(HANDLE, int)
 // Создает окно приложения и сохраняет указатель приложения в переменной hInst
@@ -97,6 +96,8 @@ BOOL InitInstance( HINSTANCE hInstance, int nCmdShow )
 	UpdateWindow( hWnd );			// Обновить окно
 	return TRUE;				//Успешное завершение функции
 }
+
+/*****************************************************************************/
 
 //  FUNCTION: WndProc(HWND, unsigned, WORD, LONG)
 //  Оконная процедура. Принимает и обрабатывает все сообщения, приходящие в приложение

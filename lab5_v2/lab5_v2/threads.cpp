@@ -6,6 +6,8 @@
 #include <cassert>
 #include <Tchar.h>
 
+/*****************************************************************************/
+
 void Invalidator( PVOID _pvoid ) {
 	PINVALIDATORPAR pParams = (PINVALIDATORPAR)_pvoid;
 	
@@ -16,6 +18,8 @@ void Invalidator( PVOID _pvoid ) {
 	}
 }
 
+/*****************************************************************************/
+
 void AlertThreadCreatureFail() {
 	// FIXME: Тут должно быть какое-то более логичное действие
 	assert( !"Failed to create thread" );
@@ -25,6 +29,8 @@ void AlertSemaphoreCreatureFail() {
 	// FIXME: Тут должно быть какое-то более логичное действие
 	assert( !"Failed to create semaphore" );
 }
+
+/*****************************************************************************/
 
 void GrowSemaphore( PVOID _pvoid ) {
 	PPARAMS pParams = (PPARAMS)_pvoid;
@@ -57,6 +63,8 @@ void GrowSemaphore( PVOID _pvoid ) {
 
 	LeaveCriticalSection( &pParams->m_semBlocker );
 }
+
+/*****************************************************************************/
 
 enum class Direction {
 	DONT_MOVE = -1, LEFT, RIGHT, UP, DOWN, N_OF_DIRECTIONS

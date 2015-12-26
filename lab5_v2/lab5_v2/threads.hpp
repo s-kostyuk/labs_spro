@@ -1,8 +1,13 @@
 ﻿#ifndef _THREADS_HPP_
 #define _THREADS_HPP_
 
+/*****************************************************************************/
+
 #include <windows.h>
 
+/*****************************************************************************/
+
+// Структура, получаемая worker'ами
 typedef struct
 {
 	HDC    m_hdc; // описатель контекста, в котором нужно проводить рисование
@@ -17,6 +22,9 @@ typedef struct
 }
 PARAMS, *PPARAMS;
 
+/*****************************************************************************/
+
+// Структура, получаемая потоком обновления экрана
 typedef struct 
 {
 	HWND m_hWnd; // Описатель родитеслького окна
@@ -24,14 +32,18 @@ typedef struct
 }
 INVALIDATORPAR, *PINVALIDATORPAR;
 
-void Invalidator( PVOID _pvoid );
+/*****************************************************************************/
 
-void AlertThreadCreatureFail();
+void Invalidator( PVOID _pvoid ); // Поток обновления экрана
 
-void AlertSemaphoreCreatureFail();
+void AlertThreadCreatureFail(); // Предупреждение об ошибке создания потока
 
-void GrowSemaphore( PVOID _pvoid );
+void AlertSemaphoreCreatureFail();  // Предупреждение об ошибке создания семофора
 
-void WalkCircleThread( PVOID _pvoid );
+void GrowSemaphore( PVOID _pvoid ); // Поток, увеличивающий верхнюю планку семофора
+
+void WalkCircleThread( PVOID _pvoid ); // Поток, перемещающий окружности
+
+/*****************************************************************************/
 
 #endif // _THREADS_HPP_

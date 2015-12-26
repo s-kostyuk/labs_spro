@@ -1,15 +1,21 @@
-#ifndef _MAIN_HPP_
+п»ї#ifndef _MAIN_HPP_
 #define _MAIN_HPP_
 
 /*****************************************************************************/
 
-#include <windows.h> // подключение библиотеки с функциями API
-
 #include "support.hpp"
+#include "threads.hpp"
+
+#include <windows.h> // РїРѕРґРєР»СЋС‡РµРЅРёРµ Р±РёР±Р»РёРѕС‚РµРєРё СЃ С„СѓРЅРєС†РёСЏРјРё API
+#include <Tchar.h>
+#include <cassert>
+#include <cstdlib>
+#include <ctime>
+#include <vector>
 
 /*****************************************************************************/
 
-// Предварительное описание функций
+// РџСЂРµРґРІР°СЂРёС‚РµР»СЊРЅРѕРµ РѕРїРёСЃР°РЅРёРµ С„СѓРЅРєС†РёР№
 ATOM MyRegisterClass( HINSTANCE hInstance );
 BOOL InitInstance( HINSTANCE, int );
 LRESULT CALLBACK WndProc( HWND, UINT, WPARAM, LPARAM );
