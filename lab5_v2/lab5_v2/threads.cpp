@@ -39,7 +39,7 @@ void GrowSemaphore( PVOID _pvoid ) {
 	// Генерируем новый семафор
 	newSemaphore = CreateSemaphore( NULL, 0, pParams->m_maxNOfWorkers * 2, NULL );
 
-	// Если создание семофора не удалось - ругаемся и выходим
+	// Если создание семафора не удалось - ругаемся и выходим
 	if ( newSemaphore == NULL ) {
 		AlertSemaphoreCreatureFail();
 
@@ -48,17 +48,17 @@ void GrowSemaphore( PVOID _pvoid ) {
 
 	EnterCriticalSection( &pParams->m_semBlocker );
 
-	// Блокируем доступ к семофору
+	// Блокируем доступ к семафору
 	ResetEvent( pParams->m_semAvailable );
 
-	// Закрываем описатель старого семофора
+	// Закрываем описатель старого семафора
 	CloseHandle( pParams->m_semaphore );
 
 	// Сохраняем новые параметры
 	pParams->m_semaphore = newSemaphore;
 	pParams->m_maxNOfWorkers *= 2;
 
-	// Снимаем блокировку доступа к семофору
+	// Снимаем блокировку доступа к семафору
 	SetEvent( pParams->m_semAvailable );
 
 	LeaveCriticalSection( &pParams->m_semBlocker );
@@ -153,7 +153,7 @@ void WalkCircleThread( PVOID _pvoid ) {
 		// Определяем след. позицию окружности
 		MoveInDirection( circleDims, direction, step );
 
-		// Ждем доступа к семофору
+		// Ждем доступа к семафору
 		WaitForSingleObject( pParams->m_semAvailable, INFINITE );
 
 		EnterCriticalSection( &pParams->m_semBlocker );

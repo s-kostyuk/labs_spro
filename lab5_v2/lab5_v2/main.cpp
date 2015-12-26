@@ -199,7 +199,7 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam 
 
 		// Если к-во потоков приближается к максимальному...
 		if ( ( maxNOfWorkers - 2 ) < workers.size() ) {
-			// ...увеличим макс. число семофора
+			// ...увеличим макс. число семафора
 			growNeeded = true;	
 		}
 
