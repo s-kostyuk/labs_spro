@@ -162,7 +162,7 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam 
 		// Закончить графический вывод
 		//EndPaint( hWnd, &ps );
 
-		ValidateRect( hWnd, NULL );
+		//ValidateRect( hWnd, NULL );
 		break;
 		
 

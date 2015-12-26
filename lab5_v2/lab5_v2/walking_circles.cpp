@@ -62,6 +62,8 @@ void WalkCircleThread( PVOID _pvoid ) {
 
 	const SIZE circleSize = { 40, 40 };
 
+	PAINTSTRUCT ps;
+
 	HDC hdc;
 
 	const UINT step = 1;
@@ -71,17 +73,25 @@ void WalkCircleThread( PVOID _pvoid ) {
 
 	direction = (Direction)( rand() % (int)Direction::N_OF_DIRECTIONS );
 
+	RECT ellipseRect = { circlePos.x, circlePos.y, circlePos.x + circleSize.cx, circlePos.y + circleSize.cy };
+
 	while ( ! pParams->m_bKill )
 	{
 		DetermineDirection( direction, circlePos, circleSize, pParams->m_clientRect );
 
 		MoveInDirection( circlePos, direction );
 
-		hdc = GetDC( pParams->m_hWnd );
+		
 
-		Ellipse( hdc, circlePos.x, circlePos.y, circlePos.x + circleSize.cx, circlePos.y + circleSize.cy );
+		InvalidateRect( pParams->m_hWnd, &ellipseRect, TRUE );
 
-		ReleaseDC( pParams->m_hWnd, hdc );
+		ellipseRect = { circlePos.x, circlePos.y, circlePos.x + circleSize.cx, circlePos.y + circleSize.cy };
+
+		hdc = BeginPaint( pParams->m_hWnd, &ps );
+
+		Ellipse( hdc, ellipseRect );
+
+		EndPaint( pParams->m_hWnd, &ps );
 
 		Sleep( 10 );
 	}
