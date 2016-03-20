@@ -8,6 +8,10 @@ void PolyToStarHardcored( POINT * _pStar, const POINT * _pPoly );
 
 /**********************************************************************************/
 
+#define N_OF_POINTS 5
+
+/**********************************************************************************/
+
 BOOL APIENTRY DllMain( HANDLE hModule, DWORD ul_reason_for_call, LPVOID lpReserved ) {
 	return TRUE;
 }
@@ -16,13 +20,11 @@ BOOL APIENTRY DllMain( HANDLE hModule, DWORD ul_reason_for_call, LPVOID lpReserv
 
 L7_2_DLL void Paint5PointStar( HDC _hdc, const RECT * _pRect ) {
 
-	const short nOfPoints = 5;
-
-	POINT points[ nOfPoints ];
+	POINT points[ N_OF_POINTS ];
 
 	Init5PointStar( points, _pRect );
 
-	Polygon( _hdc, points, nOfPoints );
+	Polygon( _hdc, points, N_OF_POINTS );
 
 }
 
@@ -30,13 +32,11 @@ L7_2_DLL void Paint5PointStar( HDC _hdc, const RECT * _pRect ) {
 
 L7_2_DLL void PaintPentagon( HDC _hdc, const RECT * _pRect ) {
 
-	const short nOfPoints = 5;
+	POINT points[ N_OF_POINTS ];
 
-	POINT points[ nOfPoints ];
+	InitRegularPoligon( points, N_OF_POINTS, _pRect );
 
-	InitRegularPoligon( points, nOfPoints, _pRect );
-
-	Polygon( _hdc, points, nOfPoints );
+	Polygon( _hdc, points, N_OF_POINTS );
 
 }
 
@@ -44,13 +44,11 @@ L7_2_DLL void PaintPentagon( HDC _hdc, const RECT * _pRect ) {
 
 L7_2_DLL void PaintTestStar( HWND hWnd ) {
 
-	const short nOfPoints = 5;
-
 	HDC hdc = GetDC( hWnd );
 
-	POINT points[ nOfPoints ] = { 600, 50, 640, 200, 490, 100, 650, 100, 500, 200 };
+	POINT points[ N_OF_POINTS ] = { 600, 50, 640, 200, 490, 100, 650, 100, 500, 200 };
 
-	Polygon( hdc, points, nOfPoints );
+	Polygon( hdc, points, N_OF_POINTS );
 
 	ReleaseDC( hWnd, hdc );
 
@@ -60,11 +58,9 @@ L7_2_DLL void PaintTestStar( HWND hWnd ) {
 
 void Init5PointStar( POINT * _p, const RECT * _pRect ) {
 
-	const short nOfPoints = 5;
+	POINT pentagonPoints[ N_OF_POINTS ];
 
-	POINT pentagonPoints[ nOfPoints ];
-
-	InitRegularPoligon( pentagonPoints, nOfPoints, _pRect );
+	InitRegularPoligon( pentagonPoints, N_OF_POINTS, _pRect );
 
 	PolyToStarHardcored( _p, pentagonPoints );
 

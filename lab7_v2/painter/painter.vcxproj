@@ -151,8 +151,8 @@
     <ClInclude Include="poly_lib.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="painter.cpp" />
-    <ClCompile Include="poly_lib.cpp" />
+    <ClCompile Include="painter.c" />
+    <ClCompile Include="poly_lib.c" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
