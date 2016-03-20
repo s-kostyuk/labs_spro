@@ -6,14 +6,14 @@
 
 // Глобальные переменные:
 HINSTANCE hInst; 	// Указатель приложения
-LPCTSTR szWindowClass = _T( "Kostyuk" );
-LPCTSTR szTitle = _T( "lab4: child control windows" );
+PTCHAR szWindowClass = _T( "Kostyuk" );
+PTCHAR szTitle = _T( "lab4: child control windows" );
 const SIZE wndDefaultSize{ 600, 400 };
 
 // Основная программа 
 int APIENTRY WinMain( HINSTANCE hInstance,
 	HINSTANCE hPrevInstance,
-	LPSTR     lpCmdLine,
+	PTCHAR    lpCmdLine,
 	int       nShowCmd )
 {
 	MSG msg;
