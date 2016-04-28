@@ -14,6 +14,7 @@ int arr2[ 3 ][ 3 ] = { { 3, 2, 1 },{ 6, 5, 4 },{ 9, 8, 7 } };
 int arr3[ 3 ][ 3 ] = { { 0, 0, 0 },{ 0, 0, 0 },{ 0, 0, 0 } };
 int arr4[ 3 ][ 3 ] = { { 0, 0, 0 },{ 0, 0, 0 },{ 0, 0, 0 } };
 int arr5[ 3 ][ 3 ] = { { 0, 0, 0 },{ 0, 0, 0 },{ 0, 0, 0 } };
+int arr6[ 3 ][ 3 ] = { { 0, 0, 0 },{ 0, 0, 0 },{ 0, 0, 0 } };
 
 void MTransponse( int nrows, int ncols ) {
 	__asm {
@@ -94,6 +95,53 @@ void MSum( int nrows, int ncols ) {
 
 }
 
+void MMul( int n, int m, int p ) {
+
+	int i, j, k;
+
+	__asm {
+
+		jmp start;
+
+		start:
+			mov i, 0; i = 0
+
+		outer_loop:
+			mov eax, i; eax = i
+			cmp eax, n; if i == n
+			je do_exit; then exit
+			mov j, 0; else j = 0 and jmp middle_loop
+
+		middle_loop:
+			mov eax, j; eax = j
+			cmp eax, m; if j == m
+			je outer_loop_end; then exit middle_loop
+
+			mov k, 0; else k = 0 and jmp inner_loop
+
+		inner_loop:
+			mov eax, k; eax = k
+			cmp eax, p; if k == p
+			je middle_loop_end; then exit inner loop
+
+
+
+			inc k; k++
+			jmp inner_loop; start new inner_loop iteration
+
+		middle_loop_end:
+			inc j; j++
+			jmp middle_loop; start new middle_loop iteration
+
+		outer_loop_end:
+			inc i; i++
+			jmp outer_loop; start new outer_loop iteration
+		
+		do_exit:
+	}
+
+}
+
 void PrintArray3x3( HDC _hdc, const RECT & _client, int _array[ 3 ][ 3 ], int _padding_x, int _padding_y, char * _buf ) {
 
 	for ( int row = 0; row < 3; ++row ) {
@@ -120,7 +168,7 @@ void PrintArrays( HDC _hdc, const RECT & _client ) {
 
 	padding_x += 140;
 
-	TextOut( _hdc, padding_x, padding_y, buff, wsprintf( buff, "Mul result:" ) );
+	TextOut( _hdc, padding_x, padding_y, buff, wsprintf( buff, "EW Mul result:" ) );
 	PrintArray3x3( _hdc, _client, arr3, padding_x, padding_y, buff );
 
 	padding_x = 10;	
@@ -134,6 +182,10 @@ void PrintArrays( HDC _hdc, const RECT & _client ) {
 	TextOut( _hdc, padding_x, padding_y, buff, wsprintf( buff, "Src 1 tranposed:" ) );
 	PrintArray3x3( _hdc, _client, arr5, padding_x, padding_y, buff );
 
+	padding_x += 140;
+
+	TextOut( _hdc, padding_x, padding_y, buff, wsprintf( buff, "Src1 x Src2 = " ) );
+	PrintArray3x3( _hdc, _client, arr6, padding_x, padding_y, buff );
 }
 
 // Предварительное описание функций
@@ -237,6 +289,7 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam 
 		MElementWiseMul( 3, 3 );
 		MSum( 3, 3 );
 		MTransponse( 3, 3 );
+		MMul( 3, 3, 3 );
 		break;
 
 	case WM_PAINT:  // Перерисовать окно
