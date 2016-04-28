@@ -7,10 +7,9 @@ LPCTSTR szWindowClass = "Kostyuk";
 LPCTSTR szTitle = "lab 9. Assembler usage";
 
 const int N_OF_BITS = 32; // Размер числа по условию задачи
-CHAR char_buf[ N_OF_BITS + 1 ]; // Массив-буфер для хранения текстового представления числа
 
-int arr1[ 3 ][ 3 ] = { { 10, 12, 33 },{ 24, 52, 46 },{ 17, 28, 95 } };
-int arr2[ 3 ][ 3 ] = { { 3, 2, 1 },{ 6, 5, 4 },{ 9, 8, 7 } };
+int arr1[ 3 ][ 3 ] = { { 1, 2, 3 },{ 4, 5, 6 },{ 7, 8, 9 } };
+int arr2[ 3 ][ 3 ] = { { 5, 8, 30 },{ 6, 10, 11 },{ 0, 3, 8 } };
 int arr3[ 3 ][ 3 ] = { { 0, 0, 0 },{ 0, 0, 0 },{ 0, 0, 0 } };
 int arr4[ 3 ][ 3 ] = { { 0, 0, 0 },{ 0, 0, 0 },{ 0, 0, 0 } };
 int arr5[ 3 ][ 3 ] = { { 0, 0, 0 },{ 0, 0, 0 },{ 0, 0, 0 } };
@@ -97,9 +96,21 @@ void MSum( int nrows, int ncols ) {
 
 void MMul( int n, int m, int p ) {
 
+	/*
+		n - количество строк первой матрицы
+		m - количество столбцов первой матрицы
+		m - количество строк второй матрицы
+		p - количество столбцов второй матрицы
+	*/
+
 	int i, j, k;
 
 	__asm {
+		; ebx is a value of element in dest matrix
+		; eax is temp value
+		; esi is for source array adressing
+		; edi is for dest array adressing
+		; ecx is a value in dest array, sum of products
 
 		jmp start;
 
@@ -114,22 +125,55 @@ void MMul( int n, int m, int p ) {
 
 		middle_loop:
 			mov eax, j; eax = j
-			cmp eax, m; if j == m
+			cmp eax, p; if j == p
 			je outer_loop_end; then exit middle_loop
 
-			mov k, 0; else k = 0 and jmp inner_loop
+			mov k, 0; else k = 0
+			mov ecx, 0; and ecx = sum = 0 and jmp inner_loop
 
 		inner_loop:
 			mov eax, k; eax = k
-			cmp eax, p; if k == p
+			cmp eax, m; if k == m
 			je middle_loop_end; then exit inner loop
 
+			; form adress for the first source array
+			mov eax, i; eax = i
+			mul m; eax = i * m
+			add eax, k; eax = i * m + k
+			mov esi, eax; esi = eax = i * m + k
 
+			; read value from the first source array to ebx
+			mov ebx, arr1[ esi * 4 ];
 
+			; form adress for the second source array
+			mov eax, k; eax = k
+			mul p; eax = k * p
+			add eax, j; eax = k * p + j
+			mov esi, eax; esi = eax = k * p + j
+
+			; read value from the second source array to eax
+			mov eax, arr2[ esi * 4 ];
+
+			; multiply elements from first and second matrices, save result to eax
+			mul ebx;
+
+			; add result to sum
+			add ecx, eax
+
+			; inner_loop_end
 			inc k; k++
 			jmp inner_loop; start new inner_loop iteration
 
 		middle_loop_end:
+			; form adress for the second source array
+			mov eax, i; eax = i
+			mul p; eax = i * p
+			add eax, j; eax = i * p + j
+			mov edi, eax; esi = eax = i * p + j
+
+			; write sum to dest array
+			mov arr6[ edi * 4 ], ecx;
+
 			inc j; j++
 			jmp middle_loop; start new middle_loop iteration
 
@@ -280,7 +324,6 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam 
 	PAINTSTRUCT ps;
 	HDC hdc;
 	RECT rt;
-	char sprintf_buf[ 60 ];
 
 	switch ( message )
 	{
@@ -295,8 +338,6 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam 
 	case WM_PAINT:  // Перерисовать окно
 		hdc = BeginPaint( hWnd, &ps );	// Начать графический вывод
 		GetClientRect( hWnd, &rt ); // Область окна для рисования
-
-		//TextOut( hdc, 10, 10, sprintf_buf, wsprintf( sprintf_buf, "%d", subs(11) ));
 
 		PrintArrays( hdc, rt );
 
