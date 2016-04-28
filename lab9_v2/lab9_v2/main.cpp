@@ -1,12 +1,11 @@
-#include <windows.h>         // подключение библиотеки с функциями API
+п»ї#include <windows.h>         // РїРѕРґРєР»СЋС‡РµРЅРёРµ Р±РёР±Р»РёРѕС‚РµРєРё СЃ С„СѓРЅРєС†РёСЏРјРё API
 #include <assert.h>
+#include <tchar.h>
 
-// Глобальные переменные:
-HINSTANCE hInst; 	// Указатель приложения
-LPCTSTR szWindowClass = "Kostyuk";
-LPCTSTR szTitle = "lab 9. Assembler usage";
-
-const int N_OF_BITS = 32; // Размер числа по условию задачи
+// Р“Р»РѕР±Р°Р»СЊРЅС‹Рµ РїРµСЂРµРјРµРЅРЅС‹Рµ:
+HINSTANCE hInst; 	// РЈРєР°Р·Р°С‚РµР»СЊ РїСЂРёР»РѕР¶РµРЅРёСЏ
+LPCTSTR szWindowClass = _T("Kostyuk");
+LPCTSTR szTitle = _T("lab 9. Assembler usage");
 
 int arr1[ 3 ][ 3 ] = { { 1, 2, 3 },{ 4, 5, 6 },{ 7, 8, 9 } };
 int arr2[ 3 ][ 3 ] = { { 5, 8, 30 },{ 6, 10, 11 },{ 0, 3, 8 } };
@@ -68,10 +67,10 @@ void MElementWiseMul( int nrows, int ncols ) {
 	__asm {
 			mov ecx, n_of_elements; comment
 		r3 :
-			mov eax, arr1[ ecx * 4 - 4 ]; последний элемент массива arg1
-			mov edx, arr2[ ecx * 4 - 4 ]; последний элемент массива arg2
-			mul edx; умножение edx и aex
-			mov arr3[ ecx * 4 - 4 ], eax; перемещение результата в пятый массив
+			mov eax, arr1[ ecx * 4 - 4 ]; РїРѕСЃР»РµРґРЅРёР№ СЌР»РµРјРµРЅС‚ РјР°СЃСЃРёРІР° arr1
+			mov edx, arr2[ ecx * 4 - 4 ]; РїРѕСЃР»РµРґРЅРёР№ СЌР»РµРјРµРЅС‚ РјР°СЃСЃРёРІР° arr2
+			mul edx; СѓРјРЅРѕР¶РµРЅРёРµ edx Рё aex
+			mov arr3[ ecx * 4 - 4 ], eax; РїРµСЂРµРјРµС‰РµРЅРёРµ СЂРµР·СѓР»СЊС‚Р°С‚Р° РІ РїСЏС‚С‹Р№ РјР°СЃСЃРёРІ
 			loop r3
 	}
 
@@ -85,10 +84,10 @@ void MSum( int nrows, int ncols ) {
 			mov ecx, n_of_elements; comment
 
 		r1 :
-			mov eax, arr1[ ecx * 4 - 4 ]; последний элемент массива arg1
-			mov edx, arr2[ ecx * 4 - 4 ]; последний элемент массива arg2
-			add eax, edx; сложение элементов массива 1 и 2
-			mov arr4[ ecx * 4 - 4 ], eax; перемещение результата в третий массив
+			mov eax, arr1[ ecx * 4 - 4 ]; РїРѕСЃР»РµРґРЅРёР№ СЌР»РµРјРµРЅС‚ РјР°СЃСЃРёРІР° arr1
+			mov edx, arr2[ ecx * 4 - 4 ]; РїРѕСЃР»РµРґРЅРёР№ СЌР»РµРјРµРЅС‚ РјР°СЃСЃРёРІР° arr2
+			add eax, edx; СЃР»РѕР¶РµРЅРёРµ СЌР»РµРјРµРЅС‚РѕРІ РјР°СЃСЃРёРІР° 1 Рё 2
+			mov arr4[ ecx * 4 - 4 ], eax; РїРµСЂРµРјРµС‰РµРЅРёРµ СЂРµР·СѓР»СЊС‚Р°С‚Р° РІ С‚СЂРµС‚РёР№ РјР°СЃСЃРёРІ
 			loop r1
 	}
 
@@ -97,10 +96,10 @@ void MSum( int nrows, int ncols ) {
 void MMul( int n, int m, int p ) {
 
 	/*
-		n - количество строк первой матрицы
-		m - количество столбцов первой матрицы
-		m - количество строк второй матрицы
-		p - количество столбцов второй матрицы
+		n - РєРѕР»РёС‡РµСЃС‚РІРѕ СЃС‚СЂРѕРє РїРµСЂРІРѕР№ РјР°С‚СЂРёС†С‹
+		m - РєРѕР»РёС‡РµСЃС‚РІРѕ СЃС‚РѕР»Р±С†РѕРІ РїРµСЂРІРѕР№ РјР°С‚СЂРёС†С‹
+		m - РєРѕР»РёС‡РµСЃС‚РІРѕ СЃС‚СЂРѕРє РІС‚РѕСЂРѕР№ РјР°С‚СЂРёС†С‹
+		p - РєРѕР»РёС‡РµСЃС‚РІРѕ СЃС‚РѕР»Р±С†РѕРІ РІС‚РѕСЂРѕР№ РјР°С‚СЂРёС†С‹
 	*/
 
 	int i, j, k;
@@ -186,59 +185,59 @@ void MMul( int n, int m, int p ) {
 
 }
 
-void PrintArray3x3( HDC _hdc, const RECT & _client, int _array[ 3 ][ 3 ], int _padding_x, int _padding_y, char * _buf ) {
+void PrintArray3x3( HDC _hdc, const RECT & _client, int _array[ 3 ][ 3 ], int _padding_x, int _padding_y, TCHAR * _buf ) {
 
 	for ( int row = 0; row < 3; ++row ) {
-		TextOut( _hdc, _padding_x, 20 * row + _padding_y + 20, _buf, wsprintf( _buf, "%d %d %d", _array[ row ][ 0 ], _array[ row ][ 1 ], _array[ row ][ 2 ] ) );
+		TextOut( _hdc, _padding_x, 20 * row + _padding_y + 20, _buf, wsprintf( _buf, _T("%d %d %d"), _array[ row ][ 0 ], _array[ row ][ 1 ], _array[ row ][ 2 ] ) );
 	}
 
 }
 
 void PrintArrays( HDC _hdc, const RECT & _client ) {
 
-	// Строковый буфер
-	char buff[ 60 ];
+	// РЎС‚СЂРѕРєРѕРІС‹Р№ Р±СѓС„РµСЂ
+	TCHAR buff[ 60 ];
 
 	int padding_y = 10;
 	int padding_x = 10;
 
-	TextOut( _hdc, padding_x, padding_y, buff, wsprintf( buff, "Source 1:" ) );
+	TextOut( _hdc, padding_x, padding_y, buff, wsprintf( buff, _T("Source 1:") ) );
 	PrintArray3x3( _hdc, _client, arr1, padding_x, padding_y, buff );
 
 	padding_x += 140;
 
-	TextOut( _hdc, padding_x, padding_y, buff, wsprintf( buff, "Source 2:" ) );
+	TextOut( _hdc, padding_x, padding_y, buff, wsprintf( buff, _T("Source 2:") ) );
 	PrintArray3x3( _hdc, _client, arr2, padding_x, padding_y, buff );
 
 	padding_x += 140;
 
-	TextOut( _hdc, padding_x, padding_y, buff, wsprintf( buff, "EW Mul result:" ) );
+	TextOut( _hdc, padding_x, padding_y, buff, wsprintf( buff, _T("EW Mul result:") ) );
 	PrintArray3x3( _hdc, _client, arr3, padding_x, padding_y, buff );
 
 	padding_x = 10;	
 	padding_y += 110;
 
-	TextOut( _hdc, padding_x, padding_y, buff, wsprintf( buff, "Sum result:" ) );
+	TextOut( _hdc, padding_x, padding_y, buff, wsprintf( buff, _T("Sum result:") ) );
 	PrintArray3x3( _hdc, _client, arr4, padding_x, padding_y, buff );
 
 	padding_x += 140;
 
-	TextOut( _hdc, padding_x, padding_y, buff, wsprintf( buff, "Src 1 tranposed:" ) );
+	TextOut( _hdc, padding_x, padding_y, buff, wsprintf( buff, _T("Src 1 tranposed:") ) );
 	PrintArray3x3( _hdc, _client, arr5, padding_x, padding_y, buff );
 
 	padding_x += 140;
 
-	TextOut( _hdc, padding_x, padding_y, buff, wsprintf( buff, "Src1 x Src2 = " ) );
+	TextOut( _hdc, padding_x, padding_y, buff, wsprintf( buff, _T("Src1 x Src2 = ") ) );
 	PrintArray3x3( _hdc, _client, arr6, padding_x, padding_y, buff );
 }
 
-// Предварительное описание функций
+// РџСЂРµРґРІР°СЂРёС‚РµР»СЊРЅРѕРµ РѕРїРёСЃР°РЅРёРµ С„СѓРЅРєС†РёР№
 
 ATOM MyRegisterClass( HINSTANCE hInstance );
 BOOL InitInstance( HINSTANCE, int );
 LRESULT CALLBACK WndProc( HWND, UINT, WPARAM, LPARAM );
 
-// Основная программа 
+// РћСЃРЅРѕРІРЅР°СЏ РїСЂРѕРіСЂР°РјРјР° 
 int APIENTRY WinMain( HINSTANCE hInstance,
 	HINSTANCE hPrevInstance,
 	LPSTR     lpCmdLine,
@@ -246,16 +245,16 @@ int APIENTRY WinMain( HINSTANCE hInstance,
 {
 	MSG msg;
 
-	// Регистрация класса окна 
+	// Р РµРіРёСЃС‚СЂР°С†РёСЏ РєР»Р°СЃСЃР° РѕРєРЅР° 
 	MyRegisterClass( hInstance );
 
-	// Создание окна приложения
+	// РЎРѕР·РґР°РЅРёРµ РѕРєРЅР° РїСЂРёР»РѕР¶РµРЅРёСЏ
 	if ( !InitInstance( hInstance, nCmdShow ) )
 	{
 		return FALSE;
 	}
 
-	// Цикл обработки сообщений
+	// Р¦РёРєР» РѕР±СЂР°Р±РѕС‚РєРё СЃРѕРѕР±С‰РµРЅРёР№
 	while ( GetMessage( &msg, NULL, 0, 0 ) )
 	{
 		TranslateMessage( &msg );
@@ -265,60 +264,60 @@ int APIENTRY WinMain( HINSTANCE hInstance,
 }
 
 //  FUNCTION: MyRegisterClass()
-//  Регистрирует класс окна 
+//  Р РµРіРёСЃС‚СЂРёСЂСѓРµС‚ РєР»Р°СЃСЃ РѕРєРЅР° 
 
 ATOM MyRegisterClass( HINSTANCE hInstance )
 {
 	WNDCLASSEX wcex;
 	wcex.cbSize = sizeof( WNDCLASSEX );
-	wcex.style = CS_HREDRAW | CS_VREDRAW;	// стиль окна
-	wcex.lpfnWndProc = (WNDPROC)WndProc; // оконная процедура
+	wcex.style = CS_HREDRAW | CS_VREDRAW;	// СЃС‚РёР»СЊ РѕРєРЅР°
+	wcex.lpfnWndProc = (WNDPROC)WndProc; // РѕРєРѕРЅРЅР°СЏ РїСЂРѕС†РµРґСѓСЂР°
 	wcex.cbClsExtra = 0;
 	wcex.cbWndExtra = 0;
-	wcex.hInstance = hInstance;		// указатель приложения
-	wcex.hIcon = LoadIcon( NULL, IDI_APPLICATION );		// определение иконки
-	wcex.hCursor = LoadCursor( NULL, IDC_ARROW );    // определение курсора
-	wcex.hbrBackground = GetSysColorBrush( COLOR_WINDOW );   // установка фона
-	wcex.lpszMenuName = NULL;		// определение меню
-	wcex.lpszClassName = szWindowClass;	// имя класса
+	wcex.hInstance = hInstance;		// СѓРєР°Р·Р°С‚РµР»СЊ РїСЂРёР»РѕР¶РµРЅРёСЏ
+	wcex.hIcon = LoadIcon( NULL, IDI_APPLICATION );		// РѕРїСЂРµРґРµР»РµРЅРёРµ РёРєРѕРЅРєРё
+	wcex.hCursor = LoadCursor( NULL, IDC_ARROW );    // РѕРїСЂРµРґРµР»РµРЅРёРµ РєСѓСЂСЃРѕСЂР°
+	wcex.hbrBackground = GetSysColorBrush( COLOR_WINDOW );   // СѓСЃС‚Р°РЅРѕРІРєР° С„РѕРЅР°
+	wcex.lpszMenuName = NULL;		// РѕРїСЂРµРґРµР»РµРЅРёРµ РјРµРЅСЋ
+	wcex.lpszClassName = szWindowClass;	// РёРјСЏ РєР»Р°СЃСЃР°
 	wcex.hIconSm = NULL;
 
-	return RegisterClassEx( &wcex ); // регистрация класса окна
+	return RegisterClassEx( &wcex ); // СЂРµРіРёСЃС‚СЂР°С†РёСЏ РєР»Р°СЃСЃР° РѕРєРЅР°
 }
 
 
 // FUNCTION: InitInstance(HANDLE, int)
-// Создает окно приложения и сохраняет указатель приложения в переменной hInst
+// РЎРѕР·РґР°РµС‚ РѕРєРЅРѕ РїСЂРёР»РѕР¶РµРЅРёСЏ Рё СЃРѕС…СЂР°РЅСЏРµС‚ СѓРєР°Р·Р°С‚РµР»СЊ РїСЂРёР»РѕР¶РµРЅРёСЏ РІ РїРµСЂРµРјРµРЅРЅРѕР№ hInst
 BOOL InitInstance( HINSTANCE hInstance, int nCmdShow )
 {
 	HWND hWnd;
 
-	hInst = hInstance; // сохраняет указатель приложения в переменной hInst
+	hInst = hInstance; // СЃРѕС…СЂР°РЅСЏРµС‚ СѓРєР°Р·Р°С‚РµР»СЊ РїСЂРёР»РѕР¶РµРЅРёСЏ РІ РїРµСЂРµРјРµРЅРЅРѕР№ hInst
 
-	hWnd = CreateWindow( szWindowClass, // имя класса окна
-		szTitle,   // имя приложения
-		WS_OVERLAPPEDWINDOW, // стиль окна
-		CW_USEDEFAULT,	// положение по Х
-		CW_USEDEFAULT, 	// положение по Y
-		CW_USEDEFAULT,    // размер по Х
-		CW_USEDEFAULT,    // размер по Y
-		NULL,	// описатель родительского окна
-		NULL,       // описатель меню окна
-		hInstance,  // указатель приложения
-		NULL );     // параметры создания.
+	hWnd = CreateWindow( szWindowClass, // РёРјСЏ РєР»Р°СЃСЃР° РѕРєРЅР°
+		szTitle,   // РёРјСЏ РїСЂРёР»РѕР¶РµРЅРёСЏ
+		WS_OVERLAPPEDWINDOW, // СЃС‚РёР»СЊ РѕРєРЅР°
+		CW_USEDEFAULT,	// РїРѕР»РѕР¶РµРЅРёРµ РїРѕ РҐ
+		CW_USEDEFAULT, 	// РїРѕР»РѕР¶РµРЅРёРµ РїРѕ Y
+		CW_USEDEFAULT,    // СЂР°Р·РјРµСЂ РїРѕ РҐ
+		CW_USEDEFAULT,    // СЂР°Р·РјРµСЂ РїРѕ Y
+		NULL,	// РѕРїРёСЃР°С‚РµР»СЊ СЂРѕРґРёС‚РµР»СЊСЃРєРѕРіРѕ РѕРєРЅР°
+		NULL,       // РѕРїРёСЃР°С‚РµР»СЊ РјРµРЅСЋ РѕРєРЅР°
+		hInstance,  // СѓРєР°Р·Р°С‚РµР»СЊ РїСЂРёР»РѕР¶РµРЅРёСЏ
+		NULL );     // РїР°СЂР°РјРµС‚СЂС‹ СЃРѕР·РґР°РЅРёСЏ.
 
-	if ( !hWnd ) // Если окно не создалось, функция возвращает FALSE
+	if ( !hWnd ) // Р•СЃР»Рё РѕРєРЅРѕ РЅРµ СЃРѕР·РґР°Р»РѕСЃСЊ, С„СѓРЅРєС†РёСЏ РІРѕР·РІСЂР°С‰Р°РµС‚ FALSE
 	{
 		return FALSE;
 	}
-	ShowWindow( hWnd, nCmdShow );		// Показать окно
-	UpdateWindow( hWnd );			// Обновить окно
-	return TRUE;				//Успешное завершение функции
+	ShowWindow( hWnd, nCmdShow );		// РџРѕРєР°Р·Р°С‚СЊ РѕРєРЅРѕ
+	UpdateWindow( hWnd );			// РћР±РЅРѕРІРёС‚СЊ РѕРєРЅРѕ
+	return TRUE;				//РЈСЃРїРµС€РЅРѕРµ Р·Р°РІРµСЂС€РµРЅРёРµ С„СѓРЅРєС†РёРё
 }
 
 
 //  FUNCTION: WndProc(HWND, unsigned, WORD, LONG)
-//  Оконная процедура. Принимает и обрабатывает все сообщения, приходящие в приложение
+//  РћРєРѕРЅРЅР°СЏ РїСЂРѕС†РµРґСѓСЂР°. РџСЂРёРЅРёРјР°РµС‚ Рё РѕР±СЂР°Р±Р°С‚С‹РІР°РµС‚ РІСЃРµ СЃРѕРѕР±С‰РµРЅРёСЏ, РїСЂРёС…РѕРґСЏС‰РёРµ РІ РїСЂРёР»РѕР¶РµРЅРёРµ
 LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam )
 {
 	PAINTSTRUCT ps;
@@ -327,7 +326,7 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam 
 
 	switch ( message )
 	{
-	case WM_CREATE: // Сообщение приходит при создании окна
+	case WM_CREATE: // РЎРѕРѕР±С‰РµРЅРёРµ РїСЂРёС…РѕРґРёС‚ РїСЂРё СЃРѕР·РґР°РЅРёРё РѕРєРЅР°
 		//do_stuff();
 		MElementWiseMul( 3, 3 );
 		MSum( 3, 3 );
@@ -335,20 +334,20 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam 
 		MMul( 3, 3, 3 );
 		break;
 
-	case WM_PAINT:  // Перерисовать окно
-		hdc = BeginPaint( hWnd, &ps );	// Начать графический вывод
-		GetClientRect( hWnd, &rt ); // Область окна для рисования
+	case WM_PAINT:  // РџРµСЂРµСЂРёСЃРѕРІР°С‚СЊ РѕРєРЅРѕ
+		hdc = BeginPaint( hWnd, &ps );	// РќР°С‡Р°С‚СЊ РіСЂР°С„РёС‡РµСЃРєРёР№ РІС‹РІРѕРґ
+		GetClientRect( hWnd, &rt ); // РћР±Р»Р°СЃС‚СЊ РѕРєРЅР° РґР»СЏ СЂРёСЃРѕРІР°РЅРёСЏ
 
 		PrintArrays( hdc, rt );
 
-		EndPaint( hWnd, &ps );	// Закончить графический вывод
+		EndPaint( hWnd, &ps );	// Р—Р°РєРѕРЅС‡РёС‚СЊ РіСЂР°С„РёС‡РµСЃРєРёР№ РІС‹РІРѕРґ
 		break;
 
-	case WM_DESTROY: // Завершение работы
+	case WM_DESTROY: // Р—Р°РІРµСЂС€РµРЅРёРµ СЂР°Р±РѕС‚С‹
 		PostQuitMessage( 0 );
 		break;
 	default:
-		// Обработка сообщений, которые не обработаны пользователем
+		// РћР±СЂР°Р±РѕС‚РєР° СЃРѕРѕР±С‰РµРЅРёР№, РєРѕС‚РѕСЂС‹Рµ РЅРµ РѕР±СЂР°Р±РѕС‚Р°РЅС‹ РїРѕР»СЊР·РѕРІР°С‚РµР»РµРј
 		return DefWindowProc( hWnd, message, wParam, lParam );
 	}
 	return 0;
