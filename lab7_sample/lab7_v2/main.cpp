@@ -1,4 +1,5 @@
 #include <windows.h>         // подключение библиотеки с функциями API
+#include <tchar.h>
 
 #include "resource.h"
 
@@ -6,8 +7,8 @@
 
 // Глобальные переменные:
 HINSTANCE hInst; 	// Указатель приложения
-LPCTSTR szWindowClass = "Kostyuk";
-LPCTSTR szTitle = "lab7_v2: Star painter";
+LPCTSTR szWindowClass = _T("Kostyuk");
+LPCTSTR szTitle = _T("lab7_v2: Star painter");
 
 // Предварительное описание функций
 
@@ -110,7 +111,7 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam 
 	case WM_PAINT:  // Перерисовать окно
 		hdc = BeginPaint( hWnd, &ps );	// Начать графический вывод
 		GetClientRect( hWnd, &rt ); // Область окна для рисования
-		DrawText( hdc, "Привет, мир!", -1, &rt, DT_SINGLELINE | DT_CENTER | DT_VCENTER );
+		DrawText( hdc, _T("Привет, мир!"), -1, &rt, DT_SINGLELINE | DT_CENTER | DT_VCENTER );
 		EndPaint( hWnd, &ps );	// Закончить графический вывод
 		break;
 
