@@ -1,4 +1,4 @@
-# lab1: device contexts, drawing of the text and graphics, GDI
+# lab2: device contexts, drawing of the text and graphics, GDI
 Solutions for the second laboratory work. Includes text drawing, drawing of 
 ellipses and outlined polygons with dynamic sizes. 
 And black magic with wsprintf and TextOut.
